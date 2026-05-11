@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>数据分析智能助手</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -249,6 +250,125 @@
         }
 
         .chart-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        /* Markdown 样式 */
+        .md-tabs {
+            display: flex;
+            padding: 15px 25px;
+            background: white;
+            border-bottom: 1px solid #e0e0e0;
+            gap: 10px;
+        }
+
+        .md-tab {
+            padding: 8px 20px;
+            border: none;
+            background: #f0f0f0;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+        }
+
+        .md-tab.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .md-editor-container {
+            height: calc(100% - 60px);
+            display: none;
+        }
+
+        .md-editor-container.active {
+            display: flex;
+        }
+
+        .md-editor {
+            flex: 1;
+            padding: 20px;
+            background: white;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .md-editor-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e0e0e0;
+            margin-bottom: 10px;
+        }
+
+        .md-editor-title {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .md-textarea {
+            flex: 1;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 14px;
+            resize: none;
+            line-height: 1.6;
+        }
+
+        .md-textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .md-preview {
+            flex: 1;
+            padding: 20px;
+            background: white;
+            border-left: 1px solid #e0e0e0;
+            overflow-y: auto;
+        }
+
+        .md-preview h1 { font-size: 2em; margin: 0.67em 0; color: #1a1a2e; border-bottom: 2px solid #667eea; padding-bottom: 10px; }
+        .md-preview h2 { font-size: 1.5em; margin: 0.83em 0; color: #1a1a2e; border-bottom: 1px solid #e0e0e0; padding-bottom: 8px; }
+        .md-preview h3 { font-size: 1.17em; margin: 1em 0; color: #333; }
+        .md-preview p { margin: 1em 0; line-height: 1.8; color: #444; }
+        .md-preview ul, .md-preview ol { margin: 1em 0; padding-left: 2em; }
+        .md-preview li { margin: 0.5em 0; line-height: 1.6; }
+        .md-preview code { background: #f4f4f4; padding: 2px 6px; border-radius: 4px; font-family: monospace; color: #e83e8c; }
+        .md-preview pre { background: #1a1a2e; color: #fff; padding: 15px; border-radius: 8px; overflow-x: auto; margin: 1em 0; }
+        .md-preview pre code { background: none; color: inherit; padding: 0; }
+        .md-preview blockquote { border-left: 4px solid #667eea; margin: 1em 0; padding: 10px 20px; background: #f8f9fa; color: #666; }
+        .md-preview table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+        .md-preview th, .md-preview td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
+        .md-preview th { background: #667eea; color: white; }
+        .md-preview tr:nth-child(even) { background: #f9f9f9; }
+        .md-preview a { color: #667eea; text-decoration: none; }
+        .md-preview a:hover { text-decoration: underline; }
+        .md-preview img { max-width: 100%; border-radius: 8px; }
+        .md-preview hr { border: none; border-top: 1px solid #ddd; margin: 2em 0; }
+
+        .md-toolbar {
+            display: flex;
+            gap: 8px;
+        }
+
+        .md-tool-btn {
+            padding: 6px 12px;
+            border: 1px solid #e0e0e0;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        .md-tool-btn:hover {
             background: #667eea;
             color: white;
             border-color: #667eea;
@@ -616,7 +736,58 @@
                 </div>
             </div>
 
-            <div class="chart-type-bar">
+            <!-- Markdown 标签页 -->
+            <div class="md-tabs">
+                <button class="md-tab active" onclick="switchRightPanel('charts')">📊 图表</button>
+                <button class="md-tab" onclick="switchRightPanel('markdown')">📝 Markdown</button>
+            </div>
+
+            <!-- Markdown 编辑器容器 -->
+            <div class="md-editor-container" id="mdEditorContainer">
+                <div class="md-editor">
+                    <div class="md-editor-header">
+                        <span class="md-editor-title">📝 Markdown 编辑器</span>
+                        <div class="md-toolbar">
+                            <button class="md-tool-btn" onclick="insertMd('**', '**')">加粗</button>
+                            <button class="md-tool-btn" onclick="insertMd('*', '*')">斜体</button>
+                            <button class="md-tool-btn" onclick="insertMd('\n- ', '')">列表</button>
+                            <button class="md-tool-btn" onclick="insertMd('\n```\n', '\n```')">代码</button>
+                            <button class="md-tool-btn" onclick="insertMd('\n> ', '')">引用</button>
+                            <button class="md-tool-btn" onclick="insertMd('\n| 表头1 | 表头2 |\n|------|------|\n| ', ' | 数据 |\n')">表格</button>
+                            <button class="md-tool-btn" onclick="previewMarkdown()">👁️ 预览</button>
+                            <button class="md-tool-btn" onclick="copyMarkdown()">📋 复制</button>
+                            <button class="md-tool-btn" onclick="downloadMarkdown()">💾 下载</button>
+                        </div>
+                    </div>
+                    <textarea class="md-textarea" id="mdTextarea" placeholder="# 标题
+
+## 数据分析报表
+
+输入 Markdown 内容，实时预览效果...
+
+**加粗文本** 和 *斜体文本*
+
+- 列表项 1
+- 列表项 2
+
+| 地区 | 销售额 |
+|------|--------|
+| 华东 | ¥859万 |
+| 华北 | ¥754万 |
+
+```sql
+SELECT region, SUM(sales) FROM sales GROUP BY region;
+```
+
+> 引用文本示例
+
+[链接文字](https://example.com)
+" oninput="updateMarkdownPreview()"></textarea>
+                    <div class="md-preview" id="mdPreview"></div>
+                </div>
+            </div>
+
+            <div class="chart-type-bar" id="chartTypeBar">
                 <div class="chart-type-btn active" data-type="bar" onclick="switchChartType('bar')">
                     📊 柱状图
                 </div>
@@ -730,6 +901,7 @@
         let currentChartType = 'bar';
         let currentFile = null;
         let chartOptions = {};
+        let currentRightPanel = 'charts';
 
         // 示例数据
         const sampleData = {
@@ -740,6 +912,93 @@
             categories: ['电子产品', '服装', '食品', '家居', '图书'],
             categorySales: [450, 320, 280, 180, 120]
         };
+
+        // Markdown 功能
+        function switchRightPanel(panel) {
+            currentRightPanel = panel;
+            const tabs = document.querySelectorAll('.md-tab');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            const mdContainer = document.getElementById('mdEditorContainer');
+            const chartTypeBar = document.getElementById('chartTypeBar');
+            const chartWrapper = document.querySelector('.chart-container-wrapper');
+            
+            if (panel === 'markdown') {
+                mdContainer.classList.add('active');
+                chartTypeBar.style.display = 'none';
+                chartWrapper.style.display = 'none';
+                updateMarkdownPreview();
+            } else {
+                mdContainer.classList.remove('active');
+                chartTypeBar.style.display = 'flex';
+                chartWrapper.style.display = 'block';
+            }
+        }
+
+        function updateMarkdownPreview() {
+            const textarea = document.getElementById('mdTextarea');
+            const preview = document.getElementById('mdPreview');
+            if (textarea && preview && typeof marked !== 'undefined') {
+                preview.innerHTML = marked.parse(textarea.value);
+            }
+        }
+
+        function insertMd(before, after) {
+            const textarea = document.getElementById('mdTextarea');
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            const text = textarea.value;
+            const selected = text.substring(start, end);
+            textarea.value = text.substring(0, start) + before + selected + after + text.substring(end);
+            textarea.focus();
+            textarea.selectionStart = start + before.length;
+            textarea.selectionEnd = start + before.length + selected.length;
+            updateMarkdownPreview();
+        }
+
+        function previewMarkdown() {
+            const preview = document.getElementById('mdPreview');
+            const mdEditor = document.querySelector('.md-editor');
+            const currentDisplay = preview.style.display;
+            
+            if (currentDisplay === 'none' || !currentDisplay) {
+                preview.style.display = 'block';
+                mdEditor.querySelector('.md-textarea').style.display = 'none';
+            } else {
+                preview.style.display = 'none';
+                mdEditor.querySelector('.md-textarea').style.display = 'flex';
+            }
+            updateMarkdownPreview();
+        }
+
+        function copyMarkdown() {
+            const textarea = document.getElementById('mdTextarea');
+            navigator.clipboard.writeText(textarea.value).then(() => {
+                showToast('✅ Markdown 已复制到剪贴板');
+            });
+        }
+
+        function downloadMarkdown() {
+            const textarea = document.getElementById('mdTextarea');
+            const blob = new Blob([textarea.value], { type: 'text/markdown' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'report_' + new Date().toISOString().slice(0,10) + '.md';
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('✅ Markdown 文件已下载');
+        }
+
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = message;
+            toast.style.cssText = 'position:fixed;top:20px;right:20px;background:#667eea;color:white;padding:12px 24px;border-radius:8px;z-index:9999;animation:slideIn 0.3s ease';
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
 
         // 初始化图表
         function initCharts() {
@@ -1217,7 +1476,10 @@ ORDER BY total DESC
         });
 
         // 页面加载完成后初始化
-        document.addEventListener('DOMContentLoaded', initCharts);
+        document.addEventListener('DOMContentLoaded', () => {
+            initCharts();
+            updateMarkdownPreview();
+        });
     </script>
 </body>
 </html>
