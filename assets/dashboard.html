@@ -6,6 +6,9 @@
     <title>数据分析智能助手</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- 文件解析库 -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -100,33 +103,84 @@
             margin-bottom: 8px;
         }
 
-        .message.file-upload .file-icon {
-            font-size: 1.5rem;
-        }
-
         .message .timestamp {
             font-size: 0.75rem;
-            opacity: 0.6;
-            margin-top: 5px;
+            opacity: 0.7;
+            margin-top: 8px;
         }
 
-        .message .chart-hint {
-            background: rgba(102, 126, 234, 0.2);
+        .typing-indicator {
+            display: flex;
+            gap: 4px;
             padding: 10px;
-            border-radius: 8px;
-            margin-top: 10px;
-            border-left: 3px solid #667eea;
         }
 
-        .message .chart-hint strong {
-            color: #667eea;
+        .typing-indicator span {
+            width: 8px;
+            height: 8px;
+            background: #e8e8e8;
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
         }
 
-        /* 聊天输入区域 */
-        .chat-input-area {
-            padding: 15px;
+        .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
+            30% { transform: translateY(-10px); opacity: 1; }
+        }
+
+        /* 文件上传区域 */
+        .file-upload-area {
             background: #0f3460;
-            border-top: 1px solid #1a1a2e;
+            padding: 15px;
+            border-radius: 12px;
+            margin: 10px 20px;
+        }
+
+        .file-upload-area.dragover {
+            background: #1a4d7c;
+            border: 2px dashed #667eea;
+        }
+
+        .file-upload-hint {
+            text-align: center;
+            color: #e8e8e8;
+            font-size: 0.85rem;
+            margin-bottom: 10px;
+        }
+
+        .file-type-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            justify-content: center;
+            margin-bottom: 10px;
+        }
+
+        .file-type-tag {
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            background: #16213e;
+            color: #667eea;
+            border: 1px solid #667eea;
+        }
+
+        .file-type-tag.data {
+            border-color: #4a9c3d;
+            color: #4a9c3d;
+        }
+
+        .file-type-tag.text {
+            border-color: #f39c12;
+            color: #f39c12;
+        }
+
+        .chat-input-area {
+            padding: 15px 20px;
+            background: #0f3460;
         }
 
         .file-upload-row {
@@ -136,26 +190,43 @@
         }
 
         .file-upload-btn {
-            display: flex;
+            display: inline-flex;
             align-items: center;
             gap: 5px;
-            padding: 10px 15px;
-            background: rgba(255,255,255,0.1);
-            border: 1px dashed rgba(255,255,255,0.3);
+            padding: 8px 16px;
+            background: #16213e;
+            color: #667eea;
             border-radius: 8px;
-            color: #e8e8e8;
             cursor: pointer;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             transition: all 0.3s;
+            border: 1px solid #667eea;
         }
 
         .file-upload-btn:hover {
-            background: rgba(255,255,255,0.2);
-            border-color: #667eea;
+            background: #667eea;
+            color: white;
         }
 
         .file-upload-btn input {
             display: none;
+        }
+
+        .file-preview {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: #16213e;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            color: #e8e8e8;
+        }
+
+        .file-preview .remove {
+            cursor: pointer;
+            color: #e74c3c;
+            font-weight: bold;
         }
 
         .chat-input-wrapper {
@@ -166,65 +237,59 @@
         .chat-input {
             flex: 1;
             padding: 12px 16px;
-            background: rgba(255,255,255,0.1);
-            border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 25px;
+            background: #16213e;
+            border: 1px solid #0f3460;
+            border-radius: 8px;
             color: white;
             font-size: 0.95rem;
             outline: none;
-            transition: all 0.3s;
+            transition: border-color 0.3s;
         }
 
         .chat-input:focus {
             border-color: #667eea;
-            background: rgba(255,255,255,0.15);
         }
 
         .chat-input::placeholder {
-            color: rgba(255,255,255,0.5);
+            color: #6c7a89;
         }
 
         .send-btn {
-            width: 45px;
-            height: 45px;
+            padding: 12px 20px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             border: none;
-            border-radius: 50%;
+            border-radius: 8px;
             color: white;
             cursor: pointer;
-            font-size: 1.2rem;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            font-size: 1rem;
+            transition: transform 0.2s;
         }
 
         .send-btn:hover {
-            transform: scale(1.1);
-            box-shadow: 0 5px 20px rgba(102,126,234,0.5);
+            transform: scale(1.05);
         }
 
         /* 右侧图表区域 */
         .chart-panel {
             flex: 1;
-            background: #f5f7fa;
+            background: #1a1a2e;
             display: flex;
             flex-direction: column;
             overflow: hidden;
         }
 
         .chart-header {
-            padding: 15px 25px;
-            background: white;
-            border-bottom: 1px solid #e0e0e0;
+            padding: 15px 20px;
+            background: #16213e;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            border-bottom: 1px solid #0f3460;
         }
 
         .chart-header h2 {
-            color: #2c3e50;
-            font-size: 1.3rem;
+            color: white;
+            font-size: 1.2rem;
         }
 
         .chart-actions {
@@ -234,166 +299,77 @@
 
         .chart-btn {
             padding: 8px 16px;
-            border: 1px solid #e0e0e0;
-            background: white;
+            background: #0f3460;
+            border: 1px solid #667eea;
             border-radius: 6px;
+            color: #667eea;
             cursor: pointer;
             font-size: 0.85rem;
             transition: all 0.3s;
-            color: #666;
         }
 
         .chart-btn:hover {
             background: #667eea;
             color: white;
-            border-color: #667eea;
         }
 
-        .chart-btn.active {
-            background: #667eea;
-            color: white;
-            border-color: #667eea;
-        }
-
-        /* Markdown 样式 */
-        .md-tabs {
+        /* 文件类型指示器 */
+        .file-type-indicator {
+            padding: 10px 20px;
+            background: #0f3460;
+            border-bottom: 1px solid #0f3460;
             display: flex;
-            padding: 15px 25px;
-            background: white;
-            border-bottom: 1px solid #e0e0e0;
-            gap: 10px;
-        }
-
-        .md-tab {
-            padding: 8px 20px;
-            border: none;
-            background: #f0f0f0;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 0.9rem;
-            transition: all 0.3s;
-        }
-
-        .md-tab.active {
-            background: #667eea;
-            color: white;
-        }
-
-        .md-editor-container {
-            height: calc(100% - 60px);
-            display: none;
-        }
-
-        .md-editor-container.active {
-            display: flex;
-        }
-
-        .md-editor {
-            flex: 1;
-            padding: 20px;
-            background: white;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .md-editor-header {
-            display: flex;
-            justify-content: space-between;
             align-items: center;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #e0e0e0;
-            margin-bottom: 10px;
+            gap: 15px;
         }
 
-        .md-editor-title {
+        .file-type-badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
             font-weight: bold;
-            color: #333;
         }
 
-        .md-textarea {
-            flex: 1;
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
-            padding: 15px;
-            font-family: 'Monaco', 'Menlo', monospace;
-            font-size: 14px;
-            resize: none;
-            line-height: 1.6;
-        }
-
-        .md-textarea:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
-        .md-preview {
-            flex: 1;
-            padding: 20px;
-            background: white;
-            border-left: 1px solid #e0e0e0;
-            overflow-y: auto;
-        }
-
-        .md-preview h1 { font-size: 2em; margin: 0.67em 0; color: #1a1a2e; border-bottom: 2px solid #667eea; padding-bottom: 10px; }
-        .md-preview h2 { font-size: 1.5em; margin: 0.83em 0; color: #1a1a2e; border-bottom: 1px solid #e0e0e0; padding-bottom: 8px; }
-        .md-preview h3 { font-size: 1.17em; margin: 1em 0; color: #333; }
-        .md-preview p { margin: 1em 0; line-height: 1.8; color: #444; }
-        .md-preview ul, .md-preview ol { margin: 1em 0; padding-left: 2em; }
-        .md-preview li { margin: 0.5em 0; line-height: 1.6; }
-        .md-preview code { background: #f4f4f4; padding: 2px 6px; border-radius: 4px; font-family: monospace; color: #e83e8c; }
-        .md-preview pre { background: #1a1a2e; color: #fff; padding: 15px; border-radius: 8px; overflow-x: auto; margin: 1em 0; }
-        .md-preview pre code { background: none; color: inherit; padding: 0; }
-        .md-preview blockquote { border-left: 4px solid #667eea; margin: 1em 0; padding: 10px 20px; background: #f8f9fa; color: #666; }
-        .md-preview table { border-collapse: collapse; width: 100%; margin: 1em 0; }
-        .md-preview th, .md-preview td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
-        .md-preview th { background: #667eea; color: white; }
-        .md-preview tr:nth-child(even) { background: #f9f9f9; }
-        .md-preview a { color: #667eea; text-decoration: none; }
-        .md-preview a:hover { text-decoration: underline; }
-        .md-preview img { max-width: 100%; border-radius: 8px; }
-        .md-preview hr { border: none; border-top: 1px solid #ddd; margin: 2em 0; }
-
-        .md-toolbar {
-            display: flex;
-            gap: 8px;
-        }
-
-        .md-tool-btn {
-            padding: 6px 12px;
-            border: 1px solid #e0e0e0;
-            background: white;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.85rem;
-            transition: all 0.2s;
-        }
-
-        .md-tool-btn:hover {
-            background: #667eea;
+        .file-type-badge.data {
+            background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
             color: white;
-            border-color: #667eea;
         }
 
-        /* 图表类型选择器 */
+        .file-type-badge.text {
+            background: linear-gradient(135deg, #e67e22 0%, #f39c12 100%);
+            color: white;
+        }
+
+        .file-type-badge.none {
+            background: #6c7a89;
+            color: white;
+        }
+
+        .file-info-text {
+            color: #e8e8e8;
+            font-size: 0.85rem;
+        }
+
+        /* 图表类型切换 */
         .chart-type-bar {
-            padding: 15px 25px;
-            background: white;
-            border-bottom: 1px solid #e0e0e0;
             display: flex;
             gap: 10px;
+            padding: 10px 20px;
+            background: #16213e;
+            overflow-x: auto;
+            flex-wrap: wrap;
         }
 
         .chart-type-btn {
-            padding: 8px 20px;
-            border: 2px solid #e0e0e0;
-            background: white;
-            border-radius: 20px;
+            padding: 8px 16px;
+            background: #0f3460;
+            border: 1px solid #333;
+            border-radius: 6px;
+            color: #e8e8e8;
             cursor: pointer;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            gap: 6px;
+            white-space: nowrap;
         }
 
         .chart-type-btn:hover {
@@ -403,196 +379,283 @@
 
         .chart-type-btn.active {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
             border-color: transparent;
+            color: white;
+        }
+
+        .chart-type-btn.recommended {
+            border-color: #4a9c3d;
+            position: relative;
+        }
+
+        .chart-type-btn.recommended::after {
+            content: '⭐推荐';
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #f39c12;
+            color: white;
+            font-size: 0.65rem;
+            padding: 2px 5px;
+            border-radius: 8px;
         }
 
         /* 图表容器 */
         .chart-container-wrapper {
             flex: 1;
-            padding: 25px;
-            overflow: auto;
+            overflow-y: auto;
+            padding: 15px;
         }
 
-        .charts-grid {
+        .chart-container {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 25px;
+            gap: 15px;
             height: 100%;
         }
 
         .chart-card {
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            background: #16213e;
+            border-radius: 12px;
+            overflow: hidden;
             display: flex;
             flex-direction: column;
-            overflow: hidden;
         }
 
         .chart-card-header {
-            padding: 15px 20px;
-            border-bottom: 1px solid #f0f0f0;
+            padding: 12px 15px;
+            background: #0f3460;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
 
         .chart-card-title {
-            font-weight: 600;
-            color: #2c3e50;
             display: flex;
             align-items: center;
             gap: 8px;
+            color: white;
+            font-size: 0.9rem;
         }
 
         .chart-card-actions {
             display: flex;
-            gap: 8px;
+            gap: 5px;
         }
 
         .mini-btn {
-            width: 30px;
-            height: 30px;
-            border: 1px solid #e0e0e0;
-            background: white;
-            border-radius: 6px;
+            padding: 5px 8px;
+            background: transparent;
+            border: 1px solid #667eea;
+            border-radius: 4px;
+            color: #667eea;
             cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s;
-            font-size: 0.8rem;
+            font-size: 0.75rem;
+            transition: all 0.2s;
         }
 
         .mini-btn:hover {
             background: #667eea;
             color: white;
-            border-color: #667eea;
         }
 
         .chart-card-body {
             flex: 1;
-            padding: 15px;
-            min-height: 300px;
+            min-height: 250px;
         }
 
-        /* 空状态 */
-        .empty-chart-state {
-            height: 100%;
+        /* 数据预览表格 */
+        .data-preview-container {
+            background: #16213e;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            overflow: hidden;
+        }
+
+        .data-preview-header {
+            padding: 12px 15px;
+            background: #0f3460;
+            color: white;
+            font-size: 0.9rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .data-preview-table {
+            max-height: 200px;
+            overflow: auto;
+        }
+
+        .data-preview-table table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+        }
+
+        .data-preview-table th {
+            background: #1f4068;
+            color: #667eea;
+            padding: 8px 12px;
+            text-align: left;
+            position: sticky;
+            top: 0;
+        }
+
+        .data-preview-table td {
+            padding: 8px 12px;
+            color: #e8e8e8;
+            border-bottom: 1px solid #0f3460;
+        }
+
+        .data-preview-table tr:hover {
+            background: #1f4068;
+        }
+
+        /* Markdown 编辑器 */
+        .md-editor-container {
+            display: none;
+            flex: 1;
+            padding: 15px;
+            overflow: hidden;
+        }
+
+        .md-editor-container.active {
             display: flex;
             flex-direction: column;
+        }
+
+        .md-tabs {
+            display: flex;
+            gap: 10px;
+            padding: 10px 20px;
+            background: #16213e;
+        }
+
+        .md-tab {
+            padding: 8px 16px;
+            background: #0f3460;
+            border: 1px solid #333;
+            border-radius: 6px;
+            color: #e8e8e8;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.3s;
+        }
+
+        .md-tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-color: transparent;
+            color: white;
+        }
+
+        .md-editor {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #16213e;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .md-editor-header {
+            padding: 10px 15px;
+            background: #0f3460;
+            display: flex;
+            justify-content: space-between;
             align-items: center;
-            justify-content: center;
-            color: #999;
+            flex-wrap: wrap;
+            gap: 10px;
         }
 
-        .empty-chart-state .icon {
-            font-size: 4rem;
-            margin-bottom: 20px;
-            opacity: 0.5;
-        }
-
-        .empty-chart-state p {
-            font-size: 1.1rem;
-            margin-bottom: 10px;
-        }
-
-        .empty-chart-state .hint {
+        .md-editor-title {
+            color: white;
             font-size: 0.9rem;
-            color: #bbb;
         }
 
-        /* 加载动画 */
-        .typing-indicator {
+        .md-toolbar {
             display: flex;
             gap: 5px;
-            padding: 15px;
+            flex-wrap: wrap;
         }
 
-        .typing-indicator span {
-            width: 8px;
-            height: 8px;
+        .md-tool-btn {
+            padding: 5px 10px;
+            background: #16213e;
+            border: 1px solid #333;
+            border-radius: 4px;
+            color: #e8e8e8;
+            cursor: pointer;
+            font-size: 0.75rem;
+            transition: all 0.2s;
+        }
+
+        .md-tool-btn:hover {
             background: #667eea;
-            border-radius: 50%;
-            animation: bounce 1.4s infinite ease-in-out;
+            border-color: #667eea;
         }
 
-        .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
-        .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
-
-        @keyframes bounce {
-            0%, 80%, 100% { transform: scale(0); }
-            40% { transform: scale(1); }
+        .md-textarea {
+            flex: 1;
+            padding: 15px;
+            background: #16213e;
+            border: none;
+            color: #e8e8e8;
+            font-size: 0.9rem;
+            font-family: 'Consolas', monospace;
+            resize: none;
+            outline: none;
+            min-height: 200px;
         }
 
-        /* 滚动条样式 */
-        .chat-messages::-webkit-scrollbar {
-            width: 6px;
+        .md-preview {
+            flex: 1;
+            padding: 15px;
+            background: #1a1a2e;
+            color: #e8e8e8;
+            overflow-y: auto;
+            display: none;
+            line-height: 1.8;
         }
 
-        .chat-messages::-webkit-scrollbar-track {
-            background: transparent;
+        .md-preview h1, .md-preview h2, .md-preview h3 {
+            color: #667eea;
+            margin: 15px 0 10px;
         }
 
-        .chat-messages::-webkit-scrollbar-thumb {
-            background: rgba(255,255,255,0.3);
-            border-radius: 3px;
+        .md-preview table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
         }
 
-        /* 响应式 */
-        @media (max-width: 1024px) {
-            .charts-grid {
-                grid-template-columns: 1fr;
-            }
+        .md-preview th, .md-preview td {
+            border: 1px solid #0f3460;
+            padding: 8px;
+            text-align: left;
         }
 
-        @media (max-width: 768px) {
-            .app-container {
-                flex-direction: column;
-            }
-            
-            .chat-panel {
-                width: 100%;
-                height: 50vh;
-            }
-            
-            .chart-panel {
-                height: 50vh;
-            }
+        .md-preview th {
+            background: #0f3460;
         }
 
-        /* SQL代码块 */
-        .sql-block {
-            background: #1e1e1e;
-            padding: 12px;
+        .md-preview code {
+            background: #0f3460;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Consolas', monospace;
+        }
+
+        .md-preview pre {
+            background: #0f3460;
+            padding: 15px;
             border-radius: 8px;
-            font-family: 'Monaco', 'Menlo', monospace;
-            font-size: 0.85rem;
             overflow-x: auto;
-            margin: 10px 0;
         }
 
-        .sql-block .keyword {
-            color: #569cd6;
-        }
-
-        .sql-block .string {
-            color: #ce9178;
-        }
-
-        .sql-block .number {
-            color: #b5cea8;
-        }
-
-        /* 分析结果列表 */
-        .analysis-list {
-            margin: 10px 0;
-        }
-
-        .analysis-list li {
-            margin: 5px 0;
-            padding-left: 10px;
+        .md-preview pre code {
+            background: transparent;
+            padding: 0;
         }
 
         /* 全屏模态框 */
@@ -603,85 +666,196 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.8);
+            background: rgba(0, 0, 0, 0.9);
             z-index: 1000;
             justify-content: center;
             align-items: center;
         }
 
-        .modal.active {
+        .modal.show {
             display: flex;
         }
 
         .modal-content {
-            background: white;
-            border-radius: 16px;
-            width: 90%;
-            max-width: 1000px;
-            height: 80vh;
+            width: 95%;
+            height: 90%;
+            background: #1a1a2e;
+            border-radius: 12px;
             overflow: hidden;
+            display: flex;
+            flex-direction: column;
         }
 
         .modal-header {
-            padding: 20px;
-            background: #f8f9fa;
+            padding: 15px 20px;
+            background: #16213e;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid #e0e0e0;
-        }
-
-        .modal-body {
-            height: calc(100% - 70px);
-            padding: 20px;
-        }
-
-        .modal-close {
-            width: 35px;
-            height: 35px;
-            border: none;
-            background: #e0e0e0;
-            border-radius: 50%;
-            cursor: pointer;
-            font-size: 1.2rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s;
-        }
-
-        .modal-close:hover {
-            background: #e74c3c;
             color: white;
         }
 
-        /* 文件预览 */
-        .file-preview {
-            background: rgba(255,255,255,0.1);
-            padding: 10px 15px;
-            border-radius: 8px;
-            margin-top: 10px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
+        .modal-close {
+            background: transparent;
+            border: none;
+            color: #e74c3c;
+            font-size: 1.5rem;
+            cursor: pointer;
         }
 
-        .file-preview .name {
+        .modal-body {
             flex: 1;
             overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
         }
 
-        .file-preview .remove {
-            cursor: pointer;
-            opacity: 0.7;
-            transition: opacity 0.3s;
+        /* 文本分析报告样式 */
+        .text-analysis-report {
+            background: #16213e;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            color: #e8e8e8;
         }
 
-        .file-preview .remove:hover {
-            opacity: 1;
-            color: #e74c3c;
+        .text-analysis-report h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #0f3460;
+            padding-bottom: 10px;
+        }
+
+        .text-analysis-report .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .text-analysis-report .stat-card {
+            background: #0f3460;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .text-analysis-report .stat-value {
+            font-size: 1.5rem;
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .text-analysis-report .stat-label {
+            font-size: 0.8rem;
+            color: #6c7a89;
+            margin-top: 5px;
+        }
+
+        .text-analysis-report .keyword-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .text-analysis-report .keyword-tag {
+            padding: 5px 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 20px;
+            font-size: 0.8rem;
+            color: white;
+        }
+
+        .text-analysis-report .summary-box {
+            background: #0f3460;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            line-height: 1.8;
+        }
+
+        .text-analysis-report .content-preview {
+            background: #0f3460;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-size: 0.9rem;
+            line-height: 1.8;
+        }
+
+        /* 空状态 */
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #6c7a89;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .empty-state .icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+
+        .empty-state h3 {
+            color: #e8e8e8;
+            margin-bottom: 10px;
+        }
+
+        .empty-state p {
+            font-size: 0.9rem;
+            max-width: 400px;
+        }
+
+        /* 加载状态 */
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(26, 26, 46, 0.9);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid #0f3460;
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            margin-top: 15px;
+            color: #667eea;
+            font-size: 0.9rem;
+        }
+
+        /* 智能推荐提示 */
+        .smart-tip {
+            background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin: 10px 0;
         }
     </style>
 </head>
@@ -690,21 +864,40 @@
         <!-- 左侧对话区域 -->
         <div class="chat-panel">
             <div class="chat-header">
-                <h2>🤖 数据分析助手</h2>
-                <p>智能问答 · SQL生成 · 图表推荐</p>
+                <h2>🤖 数据分析智能助手</h2>
+                <p>上传文件或输入问题，获取智能分析</p>
             </div>
 
             <div class="chat-messages" id="chatMessages">
                 <div class="message bot">
-                    <div>👋 你好！我是数据分析助手，可以帮助你：</div>
+                    <div>👋 欢迎使用数据分析智能助手！</div>
+                    <div style="margin-top: 10px;">我可以帮您：</div>
                     <ul style="margin: 10px 0 0 20px;">
-                        <li>📊 分析销售数据</li>
-                        <li>📝 生成SQL查询语句</li>
-                        <li>📈 生成可视化图表</li>
-                        <li>📄 解读文档内容</li>
+                        <li>📊 <strong>数据分析</strong> - 分析Excel/CSV/JSON等数据文件</li>
+                        <li>📈 <strong>智能图表</strong> - 根据数据推荐最佳图表类型</li>
+                        <li>📝 <strong>文本分析</strong> - 分析PDF/Word/TXT/MD文档</li>
+                        <li>📄 <strong>报表生成</strong> - 生成Markdown格式报告</li>
                     </ul>
                     <div style="margin-top: 10px;">请上传文件或输入你的问题~</div>
                     <div class="timestamp">系统 · 刚刚</div>
+                </div>
+            </div>
+
+            <div class="file-upload-area" id="fileUploadArea">
+                <div class="file-upload-hint">📁 拖拽文件到此处或点击按钮上传</div>
+                <div class="file-type-tags">
+                    <span class="file-type-tag data">📊 数据源</span>
+                    <span class="file-type-tag" style="border-color: #667eea; color: #667eea;">xlsx</span>
+                    <span class="file-type-tag" style="border-color: #667eea; color: #667eea;">xls</span>
+                    <span class="file-type-tag" style="border-color: #667eea; color: #667eea;">csv</span>
+                    <span class="file-type-tag" style="border-color: #667eea; color: #667eea;">tsv</span>
+                    <span class="file-type-tag" style="border-color: #667eea; color: #667eea;">json</span>
+                    <span class="file-type-tag" style="border-color: #667eea; color: #667eea;">xml</span>
+                    <span class="file-type-tag text">📝 文本</span>
+                    <span class="file-type-tag" style="border-color: #f39c12; color: #f39c12;">pdf</span>
+                    <span class="file-type-tag" style="border-color: #f39c12; color: #f39c12;">docx</span>
+                    <span class="file-type-tag" style="border-color: #f39c12; color: #f39c12;">txt</span>
+                    <span class="file-type-tag" style="border-color: #f39c12; color: #f39c12;">md</span>
                 </div>
             </div>
 
@@ -712,7 +905,7 @@
                 <div class="file-upload-row">
                     <label class="file-upload-btn" id="fileUploadLabel">
                         📎 上传文件
-                        <input type="file" id="fileInput" accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.md,.markdown" onchange="handleFileSelect(this)" multiple>
+                        <input type="file" id="fileInput" accept=".xlsx,.xls,.csv,.tsv,.json,.xml,.pdf,.doc,.docx,.txt,.md,.markdown" onchange="handleFileSelect(this)" multiple>
                     </label>
                     <div id="filePreview" style="display: none; flex: 1;" class="file-preview">
                         <span id="fileName"></span>
@@ -729,66 +922,22 @@
         <!-- 右侧图表区域 -->
         <div class="chart-panel">
             <div class="chart-header">
-                <h2>📈 数据可视化</h2>
+                <h2 id="panelTitle">📈 数据可视化</h2>
                 <div class="chart-actions">
                     <button class="chart-btn" onclick="refreshCharts()">🔄 刷新</button>
                     <button class="chart-btn" onclick="exportAllCharts()">📥 导出全部</button>
                 </div>
             </div>
 
-            <!-- Markdown 标签页 -->
-            <div class="md-tabs">
-                <button class="md-tab active" onclick="switchRightPanel('charts')">📊 图表</button>
-                <button class="md-tab" onclick="switchRightPanel('markdown')">📝 Markdown</button>
+            <!-- 文件类型指示器 -->
+            <div class="file-type-indicator">
+                <span class="file-type-badge none" id="fileTypeBadge">等待上传</span>
+                <span class="file-info-text" id="fileInfoText">上传数据文件自动生成图表，上传文本文件生成分析报告</span>
             </div>
 
-            <!-- Markdown 编辑器容器 -->
-            <div class="md-editor-container" id="mdEditorContainer">
-                <div class="md-editor">
-                    <div class="md-editor-header">
-                        <span class="md-editor-title">📝 Markdown 编辑器</span>
-                        <div class="md-toolbar">
-                            <button class="md-tool-btn" onclick="insertMd('**', '**')">加粗</button>
-                            <button class="md-tool-btn" onclick="insertMd('*', '*')">斜体</button>
-                            <button class="md-tool-btn" onclick="insertMd('\n- ', '')">列表</button>
-                            <button class="md-tool-btn" onclick="insertMd('\n```\n', '\n```')">代码</button>
-                            <button class="md-tool-btn" onclick="insertMd('\n> ', '')">引用</button>
-                            <button class="md-tool-btn" onclick="insertMd('\n| 表头1 | 表头2 |\n|------|------|\n| ', ' | 数据 |\n')">表格</button>
-                            <button class="md-tool-btn" onclick="previewMarkdown()">👁️ 预览</button>
-                            <button class="md-tool-btn" onclick="copyMarkdown()">📋 复制</button>
-                            <button class="md-tool-btn" onclick="downloadMarkdown()">💾 下载</button>
-                        </div>
-                    </div>
-                    <textarea class="md-textarea" id="mdTextarea" placeholder="# 标题
-
-## 数据分析报表
-
-输入 Markdown 内容，实时预览效果...
-
-**加粗文本** 和 *斜体文本*
-
-- 列表项 1
-- 列表项 2
-
-| 地区 | 销售额 |
-|------|--------|
-| 华东 | ¥859万 |
-| 华北 | ¥754万 |
-
-```sql
-SELECT region, SUM(sales) FROM sales GROUP BY region;
-```
-
-> 引用文本示例
-
-[链接文字](https://example.com)
-" oninput="updateMarkdownPreview()"></textarea>
-                    <div class="md-preview" id="mdPreview"></div>
-                </div>
-            </div>
-
+            <!-- 图表类型切换 -->
             <div class="chart-type-bar" id="chartTypeBar">
-                <div class="chart-type-btn active" data-type="bar" onclick="switchChartType('bar')">
+                <div class="chart-type-btn" data-type="bar" onclick="switchChartType('bar')">
                     📊 柱状图
                 </div>
                 <div class="chart-type-btn" data-type="line" onclick="switchChartType('line')">
@@ -801,21 +950,43 @@ SELECT region, SUM(sales) FROM sales GROUP BY region;
                     ⚪ 散点图
                 </div>
                 <div class="chart-type-btn" data-type="area" onclick="switchChartType('area')">
-                    🏔️ 面积图
+                    📉 面积图
                 </div>
                 <div class="chart-type-btn" data-type="radar" onclick="switchChartType('radar')">
                     🕸️ 雷达图
                 </div>
+                <div class="chart-type-btn" data-type="heatmap" onclick="switchChartType('heatmap')">
+                    🔥 热力图
+                </div>
             </div>
 
-            <div class="chart-container-wrapper">
-                <div class="charts-grid" id="chartsGrid">
+            <!-- 图表/报告容器 -->
+            <div class="chart-container-wrapper" id="contentContainer">
+                <!-- 空状态 -->
+                <div class="empty-state" id="emptyState">
+                    <div class="icon">📊</div>
+                    <h3>等待数据分析</h3>
+                    <p>请上传数据文件（Excel、CSV、JSON等）或文本文件（PDF、Word、TXT、Markdown），我将自动为您生成可视化图表或分析报告。</p>
+                </div>
+
+                <!-- 数据预览区域 -->
+                <div class="data-preview-container" id="dataPreviewContainer" style="display: none;">
+                    <div class="data-preview-header">
+                        <span>📋 数据预览</span>
+                        <span id="dataInfo"></span>
+                    </div>
+                    <div class="data-preview-table" id="dataPreviewTable"></div>
+                </div>
+
+                <!-- 图表容器 -->
+                <div class="chart-container" id="chartContainer" style="display: none;">
                     <!-- 主图表 -->
                     <div class="chart-card">
                         <div class="chart-card-header">
                             <div class="chart-card-title">
                                 <span>📊</span>
-                                <span id="mainChartTitle">地区销售对比</span>
+                                <span id="mainChartTitle">主图表</span>
+                                <span class="smart-tip" id="mainChartTip" style="display: none;"></span>
                             </div>
                             <div class="chart-card-actions">
                                 <button class="mini-btn" onclick="expandChart('mainChart')" title="全屏">⛶</button>
@@ -827,12 +998,12 @@ SELECT region, SUM(sales) FROM sales GROUP BY region;
                         </div>
                     </div>
 
-                    <!-- 副图表 -->
+                    <!-- 第二图表 -->
                     <div class="chart-card">
                         <div class="chart-card-header">
                             <div class="chart-card-title">
                                 <span>📈</span>
-                                <span id="secondChartTitle">销售趋势</span>
+                                <span id="secondChartTitle">趋势图表</span>
                             </div>
                             <div class="chart-card-actions">
                                 <button class="mini-btn" onclick="expandChart('secondChart')" title="全屏">⛶</button>
@@ -844,12 +1015,12 @@ SELECT region, SUM(sales) FROM sales GROUP BY region;
                         </div>
                     </div>
 
-                    <!-- 第三个图表 -->
+                    <!-- 第三图表 -->
                     <div class="chart-card">
                         <div class="chart-card-header">
                             <div class="chart-card-title">
                                 <span>🥧</span>
-                                <span id="thirdChartTitle">销售占比</span>
+                                <span id="thirdChartTitle">占比图表</span>
                             </div>
                             <div class="chart-card-actions">
                                 <button class="mini-btn" onclick="expandChart('thirdChart')" title="全屏">⛶</button>
@@ -861,12 +1032,12 @@ SELECT region, SUM(sales) FROM sales GROUP BY region;
                         </div>
                     </div>
 
-                    <!-- 第四个图表 -->
+                    <!-- 第四图表 -->
                     <div class="chart-card">
                         <div class="chart-card-header">
                             <div class="chart-card-title">
                                 <span>⚪</span>
-                                <span id="fourthChartTitle">数据分布</span>
+                                <span id="fourthChartTitle">分布图表</span>
                             </div>
                             <div class="chart-card-actions">
                                 <button class="mini-btn" onclick="expandChart('fourthChart')" title="全屏">⛶</button>
@@ -876,6 +1047,55 @@ SELECT region, SUM(sales) FROM sales GROUP BY region;
                         <div class="chart-card-body">
                             <div id="fourthChart" style="width: 100%; height: 100%;"></div>
                         </div>
+                    </div>
+                </div>
+
+                <!-- 文本分析报告区域 -->
+                <div class="text-analysis-report" id="textAnalysisReport" style="display: none;">
+                    <h3>📝 文本分析报告</h3>
+                    <div class="stat-grid" id="textStats"></div>
+                    <div class="summary-box">
+                        <h4>📌 内容摘要</h4>
+                        <p id="textSummary"></p>
+                    </div>
+                    <div class="content-preview" id="textContentPreview">
+                        <h4>📄 内容预览</h4>
+                        <div id="textContent"></div>
+                    </div>
+                </div>
+
+                <!-- Markdown 编辑器 -->
+                <div class="md-editor-container active" id="mdEditorContainer">
+                    <div class="md-editor">
+                        <div class="md-editor-header">
+                            <span class="md-editor-title">📝 Markdown 报告编辑器</span>
+                            <div class="md-toolbar">
+                                <button class="md-tool-btn" onclick="insertMd('**', '**')">加粗</button>
+                                <button class="md-tool-btn" onclick="insertMd('*', '*')">斜体</button>
+                                <button class="md-tool-btn" onclick="insertMd('\n- ', '')">列表</button>
+                                <button class="md-tool-btn" onclick="insertMd('\n```\n', '\n```')">代码</button>
+                                <button class="md-tool-btn" onclick="insertMd('\n> ', '')">引用</button>
+                                <button class="md-tool-btn" onclick="insertMd('\n| 表头1 | 表头2 |\n|------|------|\n| ', ' | 数据 |\n')">表格</button>
+                                <button class="md-tool-btn" onclick="previewMarkdown()">👁️ 预览</button>
+                                <button class="md-tool-btn" onclick="copyMarkdown()">📋 复制</button>
+                                <button class="md-tool-btn" onclick="downloadMarkdown()">💾 下载</button>
+                            </div>
+                        </div>
+                        <textarea class="md-textarea" id="mdTextarea" placeholder="# 数据分析报告
+
+## 数据概览
+- 数据行数：xxx
+- 数据列数：xxx
+
+## 关键发现
+...
+
+## 图表分析
+...
+
+## 建议与结论
+..." oninput="updateMarkdownPreview()"></textarea>
+                        <div class="md-preview" id="mdPreview"></div>
                     </div>
                 </div>
             </div>
@@ -900,42 +1120,856 @@ SELECT region, SUM(sales) FROM sales GROUP BY region;
         let charts = {};
         let currentChartType = 'bar';
         let currentFile = null;
+        let currentFileType = null; // 'data' | 'text' | null
         let chartOptions = {};
-        let currentRightPanel = 'charts';
+        let parsedData = null;
+        let parsedText = null;
+        let recommendedCharts = [];
 
-        // 示例数据
-        const sampleData = {
-            regions: ['华东', '华北', '华南', '华中', '东北', '西南', '西北'],
-            sales: [859, 754, 381, 350, 328, 214, 125],
-            months: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
-            trend: [120, 145, 180, 165, 190, 220, 250, 280, 260, 310, 350, 380],
-            categories: ['电子产品', '服装', '食品', '家居', '图书'],
-            categorySales: [450, 320, 280, 180, 120]
-        };
+        // ==========================================
+        // 文件类型判断
+        // ==========================================
+        const DATA_FORMATS = ['xlsx', 'xls', 'csv', 'tsv', 'json', 'xml'];
+        const TEXT_FORMATS = ['pdf', 'doc', 'docx', 'txt', 'md', 'markdown'];
 
-        // Markdown 功能
-        function switchRightPanel(panel) {
-            currentRightPanel = panel;
-            const tabs = document.querySelectorAll('.md-tab');
-            tabs.forEach(tab => tab.classList.remove('active'));
-            event.target.classList.add('active');
+        function getFileType(filename) {
+            const ext = filename.split('.').pop().toLowerCase();
+            if (DATA_FORMATS.includes(ext)) return 'data';
+            if (TEXT_FORMATS.includes(ext)) return 'text';
+            return null;
+        }
+
+        // ==========================================
+        // 文件解析函数
+        // ==========================================
+        
+        // 解析 Excel 文件
+        function parseExcel(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                        const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+                        resolve({
+                            columns: jsonData.length > 0 ? Object.keys(jsonData[0]) : [],
+                            rows: jsonData,
+                            sheetNames: workbook.SheetNames
+                        });
+                    } catch (err) {
+                        reject(err);
+                    }
+                };
+                reader.onerror = reject;
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+        // 解析 CSV/TSV 文件
+        function parseCSV(file) {
+            return new Promise((resolve, reject) => {
+                const ext = file.name.split('.').pop().toLowerCase();
+                const delimiter = ext === 'tsv' ? '\t' : ',';
+                
+                Papa.parse(file, {
+                    header: true,
+                    delimiter: delimiter,
+                    complete: (results) => {
+                        resolve({
+                            columns: results.data.length > 0 ? Object.keys(results.data[0]) : [],
+                            rows: results.data,
+                            errors: results.errors
+                        });
+                    },
+                    error: reject
+                });
+            });
+        }
+
+        // 解析 JSON 文件
+        function parseJSON(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        let data = JSON.parse(e.target.result);
+                        // 处理可能的多维数据
+                        if (Array.isArray(data)) {
+                            resolve({
+                                columns: data.length > 0 ? Object.keys(data[0]) : [],
+                                rows: data
+                            });
+                        } else if (typeof data === 'object') {
+                            // 如果是单个对象，包装成数组
+                            if (!Array.isArray(data)) {
+                                const keys = Object.keys(data);
+                                const rows = keys.map(key => ({
+                                    key: key,
+                                    value: data[key]
+                                }));
+                                resolve({
+                                    columns: ['key', 'value'],
+                                    rows: rows
+                                });
+                            }
+                        }
+                    } catch (err) {
+                        reject(err);
+                    }
+                };
+                reader.onerror = reject;
+                reader.readAsText(file);
+            });
+        }
+
+        // 解析 XML 文件
+        function parseXML(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const parser = new DOMParser();
+                        const xmlDoc = parser.parseFromString(e.target.result, "text/xml");
+                        
+                        // 尝试提取数据
+                        const rows = [];
+                        const items = xmlDoc.getElementsByTagName('*');
+                        
+                        for (let i = 0; i < Math.min(items.length, 100); i++) {
+                            const item = items[i];
+                            const row = {};
+                            if (item.children.length === 0) {
+                                row.tagName = item.tagName;
+                                row.textContent = item.textContent;
+                            } else {
+                                for (let j = 0; j < item.children.length; j++) {
+                                    row[item.children[j].tagName] = item.children[j].textContent;
+                                }
+                            }
+                            rows.push(row);
+                        }
+                        
+                        const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
+                        resolve({ columns, rows });
+                    } catch (err) {
+                        reject(err);
+                    }
+                };
+                reader.onerror = reject;
+                reader.readAsText(file);
+            });
+        }
+
+        // 解析文本文件
+        function parseText(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const content = e.target.result;
+                    resolve({
+                        content: content,
+                        wordCount: content.length,
+                        lines: content.split('\n').length
+                    });
+                };
+                reader.onerror = reject;
+                reader.readAsText(file);
+            });
+        }
+
+        // ==========================================
+        // 智能图表推荐算法
+        // ==========================================
+        function analyzeDataForCharts(data) {
+            const recommendations = [];
+            const columns = data.columns;
+            const rows = data.rows;
             
-            const mdContainer = document.getElementById('mdEditorContainer');
-            const chartTypeBar = document.getElementById('chartTypeBar');
-            const chartWrapper = document.querySelector('.chart-container-wrapper');
+            if (rows.length === 0) return recommendations;
             
-            if (panel === 'markdown') {
-                mdContainer.classList.add('active');
-                chartTypeBar.style.display = 'none';
-                chartWrapper.style.display = 'none';
-                updateMarkdownPreview();
-            } else {
-                mdContainer.classList.remove('active');
-                chartTypeBar.style.display = 'flex';
-                chartWrapper.style.display = 'block';
+            // 分析每列的数据类型
+            const columnTypes = {};
+            columns.forEach(col => {
+                const values = rows.map(r => r[col]).filter(v => v !== undefined && v !== null && v !== '');
+                const numericCount = values.filter(v => !isNaN(parseFloat(v))).length;
+                const isNumeric = numericCount > values.length * 0.8;
+                columnTypes[col] = {
+                    isNumeric,
+                    uniqueCount: new Set(values).size,
+                    values
+                };
+            });
+            
+            // 找到分类列和数值列
+            const categoryColumns = columns.filter(col => !columnTypes[col].isNumeric);
+            const numericColumns = columns.filter(col => columnTypes[col].isNumeric);
+            
+            // 推荐1: 如果有分类+数值 -> 柱状图/饼图
+            if (categoryColumns.length > 0 && numericColumns.length > 0) {
+                recommendations.push({
+                    type: 'bar',
+                    title: `${categoryColumns[0]} vs ${numericColumns[0]}`,
+                    description: '适合比较不同类别的数值差异',
+                    priority: 1
+                });
+                
+                recommendations.push({
+                    type: 'pie',
+                    title: `${categoryColumns[0]} 占比分布`,
+                    description: '展示各部分占总体的比例',
+                    priority: 2
+                });
+            }
+            
+            // 推荐2: 如果有多个数值列 -> 折线图
+            if (numericColumns.length >= 2) {
+                recommendations.push({
+                    type: 'line',
+                    title: `${numericColumns[0]} 趋势分析`,
+                    description: '展示数据随时间或顺序的变化趋势',
+                    priority: 2
+                });
+            }
+            
+            // 推荐3: 如果有足够的数值数据 -> 散点图
+            if (numericColumns.length >= 2 && rows.length > 10) {
+                recommendations.push({
+                    type: 'scatter',
+                    title: `${numericColumns[0]} vs ${numericColumns[1]} 相关性`,
+                    description: '展示两个变量之间的相关性',
+                    priority: 3
+                });
+            }
+            
+            // 推荐4: 如果有分类数据 -> 面积图
+            if (categoryColumns.length > 0) {
+                recommendations.push({
+                    type: 'area',
+                    title: `${categoryColumns[0]} 面积分布`,
+                    description: '展示数据累积效果',
+                    priority: 3
+                });
+            }
+            
+            // 推荐5: 雷达图（多指标对比）
+            if (numericColumns.length >= 3) {
+                recommendations.push({
+                    type: 'radar',
+                    title: '多维度指标对比',
+                    description: '展示多个维度的综合表现',
+                    priority: 4
+                });
+            }
+            
+            return recommendations.sort((a, b) => a.priority - b.priority);
+        }
+
+        // ==========================================
+        // 文本分析函数
+        // ==========================================
+        function analyzeText(content) {
+            const lines = content.split('\n').filter(l => l.trim());
+            const words = content.split(/\s+/).filter(w => w.length > 0);
+            
+            // 提取关键词（简单实现）
+            const wordFreq = {};
+            const stopWords = new Set(['的', '了', '在', '是', '我', '有', '和', '就', '不', '人', '都', '一', '一个', '上', '也', '很', '到', '说', '要', '去', '你', '会', '着', '没有', '看', '好', '自己', '这', '那', '他', '她', '它', '们', '这个', '那个', '什么', '怎么', '为什么', 'the', 'a', 'an', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'must', 'can', 'to', 'of', 'in', 'for', 'on', 'with', 'at', 'by', 'from', 'as', 'into', 'through', 'during', 'before', 'after', 'above', 'below', 'between', 'under', 'again', 'further', 'then', 'once', 'here', 'there', 'when', 'where', 'why', 'how', 'all', 'each', 'few', 'more', 'most', 'other', 'some', 'such', 'no', 'nor', 'not', 'only', 'own', 'same', 'so', 'than', 'too', 'very', 'just', 'but', 'and', 'or', 'if', 'because', 'until', 'while', 'although', 'though', 'even', 'both', 'either', 'neither']);
+            
+            words.forEach(word => {
+                const cleanWord = word.replace(/[^\w]/g, '').toLowerCase();
+                if (cleanWord.length > 2 && !stopWords.has(cleanWord)) {
+                    wordFreq[cleanWord] = (wordFreq[cleanWord] || 0) + 1;
+                }
+            });
+            
+            // 获取top关键词
+            const topKeywords = Object.entries(wordFreq)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 10)
+                .map(([word, count]) => ({ word, count }));
+            
+            // 生成摘要（取前3句话）
+            const sentences = content.split(/[.!?。！？]/).filter(s => s.trim().length > 10);
+            const summary = sentences.slice(0, 3).join('。') + '。';
+            
+            return {
+                wordCount: words.length,
+                lineCount: lines.length,
+                charCount: content.length,
+                topKeywords,
+                summary: summary || '内容较短，无法生成有效摘要。',
+                preview: content.substring(0, 500)
+            };
+        }
+
+        // ==========================================
+        // 图表生成函数
+        // ==========================================
+        function generateChartOptions(type, data, title) {
+            const columns = data.columns;
+            const rows = data.rows;
+            
+            // 提取分类和数值列
+            const categoryCol = columns.find(col => {
+                const values = rows.map(r => r[col]).filter(v => v !== undefined);
+                return new Set(values).size <= rows.length * 0.5;
+            }) || columns[0];
+            
+            const numericCols = columns.filter(col => {
+                const values = rows.map(r => r[col]).filter(v => v !== undefined && v !== '');
+                return values.filter(v => !isNaN(parseFloat(v))).length > values.length * 0.5;
+            });
+            
+            const primaryNumeric = numericCols[0] || columns.find(c => c !== categoryCol) || columns[0];
+            
+            const categories = rows.map(r => r[categoryCol]);
+            const values = rows.map(r => parseFloat(r[primaryNumeric]) || 0);
+            
+            const colorPalette = ['#5470C6', '#91CC75', '#FAC858', '#EE6666', '#73C0DE', '#3BA272', '#FC8452', '#9A60B4', '#EA7CCC'];
+            
+            const baseOption = {
+                title: { text: title, left: 'center', textStyle: { fontSize: 14, fontWeight: 'bold', color: '#e8e8e8' } },
+                tooltip: { trigger: 'axis' },
+                grid: { left: '10%', right: '5%', bottom: '15%', top: '20%' },
+                color: colorPalette
+            };
+            
+            switch (type) {
+                case 'bar':
+                    return {
+                        ...baseOption,
+                        xAxis: { type: 'category', data: categories, axisLabel: { color: '#e8e8e8', rotate: 0 }, axisLine: { lineStyle: { color: '#444' } } },
+                        yAxis: { type: 'value', axisLabel: { color: '#e8e8e8' }, splitLine: { lineStyle: { color: '#333' } } },
+                        series: [{
+                            type: 'bar',
+                            data: values,
+                            itemStyle: {
+                                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                    { offset: 0, color: '#667eea' },
+                                    { offset: 1, color: '#764ba2' }
+                                ]),
+                                borderRadius: [4, 4, 0, 0]
+                            },
+                            label: { show: true, position: 'top', color: '#e8e8e8', formatter: '{c}' }
+                        }]
+                    };
+                    
+                case 'line':
+                    return {
+                        ...baseOption,
+                        xAxis: { type: 'category', data: categories, boundaryGap: false, axisLabel: { color: '#e8e8e8' }, axisLine: { lineStyle: { color: '#444' } } },
+                        yAxis: { type: 'value', axisLabel: { color: '#e8e8e8' }, splitLine: { lineStyle: { color: '#333' } } },
+                        series: [{
+                            type: 'line',
+                            data: values,
+                            smooth: true,
+                            areaStyle: {
+                                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                    { offset: 0, color: 'rgba(102,126,234,0.5)' },
+                                    { offset: 1, color: 'rgba(102,126,234,0.1)' }
+                                ])
+                            },
+                            itemStyle: { color: '#667eea' },
+                            label: { show: true, position: 'top', color: '#e8e8e8' },
+                            lineStyle: { width: 3 }
+                        }]
+                    };
+                    
+                case 'pie':
+                    const pieData = categories.map((name, i) => ({ name, value: values[i] }));
+                    return {
+                        title: { text: title, left: 'center', textStyle: { fontSize: 14, fontWeight: 'bold', color: '#e8e8e8' } },
+                        tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+                        legend: { orient: 'vertical', left: 'left', top: 'middle', textStyle: { color: '#e8e8e8' } },
+                        color: colorPalette,
+                        series: [{
+                            type: 'pie',
+                            radius: ['40%', '70%'],
+                            center: ['60%', '50%'],
+                            data: pieData,
+                            emphasis: {
+                                itemStyle: { shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0,0,0,0.5)' }
+                            },
+                            label: { formatter: '{b}: {d}%', color: '#e8e8e8' }
+                        }]
+                    };
+                    
+                case 'scatter':
+                    const scatterData = rows.map(r => [
+                        parseFloat(r[categoryCol]) || 0,
+                        parseFloat(r[primaryNumeric]) || 0,
+                        numericCols.length > 1 ? parseFloat(r[numericCols[1]]) || 0 : parseFloat(r[primaryNumeric]) * 0.5
+                    ]);
+                    return {
+                        ...baseOption,
+                        xAxis: { type: 'value', name: categoryCol, axisLabel: { color: '#e8e8e8' }, splitLine: { lineStyle: { color: '#333' } } },
+                        yAxis: { type: 'value', name: primaryNumeric, axisLabel: { color: '#e8e8e8' }, splitLine: { lineStyle: { color: '#333' } } },
+                        series: [{
+                            type: 'scatter',
+                            data: scatterData,
+                            symbolSize: 15,
+                            itemStyle: { color: '#764ba2', opacity: 0.7 }
+                        }]
+                    };
+                    
+                case 'area':
+                    return {
+                        ...baseOption,
+                        xAxis: { type: 'category', data: categories, boundaryGap: false, axisLabel: { color: '#e8e8e8' }, axisLine: { lineStyle: { color: '#444' } } },
+                        yAxis: { type: 'value', axisLabel: { color: '#e8e8e8' }, splitLine: { lineStyle: { color: '#333' } } },
+                        series: [{
+                            type: 'line',
+                            data: values,
+                            smooth: true,
+                            areaStyle: { color: 'rgba(115, 160, 250, 0.5)' },
+                            itemStyle: { color: '#73A0FA' },
+                            lineStyle: { width: 2 }
+                        }]
+                    };
+                    
+                case 'radar':
+                    const radarIndicator = numericCols.slice(0, 6).map(col => ({
+                        name: col,
+                        max: Math.max(...rows.map(r => parseFloat(r[col]) || 0)) * 1.2
+                    }));
+                    return {
+                        title: { text: title, left: 'center', textStyle: { fontSize: 14, fontWeight: 'bold', color: '#e8e8e8' } },
+                        tooltip: {},
+                        radar: {
+                            indicator: radarIndicator,
+                            center: ['50%', '55%'],
+                            axisName: { color: '#e8e8e8' }
+                        },
+                        series: [{
+                            type: 'radar',
+                            data: [{
+                                value: numericCols.slice(0, 6).map(col => parseFloat(rows[0][col]) || 0),
+                                name: '指标',
+                                areaStyle: { color: 'rgba(102,126,234,0.5)' },
+                                itemStyle: { color: '#667eea' }
+                            }]
+                        }]
+                    };
+                    
+                case 'heatmap':
+                    const heatmapData = rows.map((r, i) => [i % 10, Math.floor(i / 10), parseFloat(r[primaryNumeric]) || 0]);
+                    return {
+                        title: { text: title, left: 'center', textStyle: { fontSize: 14, fontWeight: 'bold', color: '#e8e8e8' } },
+                        tooltip: { formatter: (p) => `${p.data[2]}` },
+                        grid: { left: '5%', right: '5%', bottom: '15%', top: '20%' },
+                        xAxis: { type: 'value', splitArea: { show: true }, axisLabel: { color: '#e8e8e8' } },
+                        yAxis: { type: 'value', splitArea: { show: true }, axisLabel: { color: '#e8e8e8' } },
+                        visualMap: { min: 0, max: Math.max(...values), calculable: true, orient: 'horizontal', left: 'center', bottom: '5%', textStyle: { color: '#e8e8e8' } },
+                        series: [{
+                            type: 'heatmap',
+                            data: heatmapData,
+                            label: { show: false },
+                            emphasis: { itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0,0,0,0.5)' } }
+                        }]
+                    };
+                    
+                default:
+                    return baseOption;
             }
         }
 
+        // ==========================================
+        // UI 更新函数
+        // ==========================================
+        function updateFileTypeUI(fileType, fileName) {
+            const badge = document.getElementById('fileTypeBadge');
+            const infoText = document.getElementById('fileInfoText');
+            
+            if (fileType === 'data') {
+                badge.className = 'file-type-badge data';
+                badge.textContent = '📊 数据文件';
+                infoText.textContent = `已加载数据文件: ${fileName}`;
+            } else if (fileType === 'text') {
+                badge.className = 'file-type-badge text';
+                badge.textContent = '📝 文本文件';
+                infoText.textContent = `已加载文本文件: ${fileName}`;
+            } else {
+                badge.className = 'file-type-badge none';
+                badge.textContent = '等待上传';
+                infoText.textContent = '上传数据文件自动生成图表，上传文本文件生成分析报告';
+            }
+        }
+
+        function showDataPreview(data) {
+            const container = document.getElementById('dataPreviewContainer');
+            const table = document.getElementById('dataPreviewTable');
+            const info = document.getElementById('dataInfo');
+            
+            info.textContent = `${data.rows.length} 行 × ${data.columns.length} 列`;
+            
+            let html = '<table><thead><tr>';
+            data.columns.forEach(col => {
+                html += `<th>${col}</th>`;
+            });
+            html += '</tr></thead><tbody>';
+            
+            data.rows.slice(0, 10).forEach(row => {
+                html += '<tr>';
+                data.columns.forEach(col => {
+                    html += `<td>${row[col] || '-'}</td>`;
+                });
+                html += '</tr>';
+            });
+            html += '</tbody></table>';
+            
+            table.innerHTML = html;
+            container.style.display = 'block';
+        }
+
+        function renderCharts(data, recommendedType) {
+            const chartContainer = document.getElementById('chartContainer');
+            const emptyState = document.getElementById('emptyState');
+            const textReport = document.getElementById('textAnalysisReport');
+            const mdContainer = document.getElementById('mdEditorContainer');
+            
+            emptyState.style.display = 'none';
+            textReport.style.display = 'none';
+            chartContainer.style.display = 'grid';
+            mdContainer.classList.remove('active');
+            
+            // 更新推荐的图表类型
+            recommendedCharts = analyzeDataForCharts(data);
+            if (recommendedCharts.length > 0 && recommendedType) {
+                recommendedCharts.forEach(rec => {
+                    if (rec.type === recommendedType) {
+                        const btn = document.querySelector(`.chart-type-btn[data-type="${rec.type}"]`);
+                        if (btn) btn.classList.add('recommended');
+                    }
+                });
+            }
+            
+            // 更新第一个图表
+            if (recommendedCharts.length > 0) {
+                const rec = recommendedCharts[0];
+                document.getElementById('mainChartTitle').textContent = rec.title;
+                document.getElementById('mainChartTip').textContent = `⭐${rec.description}`;
+                document.getElementById('mainChartTip').style.display = 'inline-flex';
+            }
+            
+            // 初始化/更新图表
+            if (!charts.mainChart) {
+                charts.mainChart = echarts.init(document.getElementById('mainChart'));
+            }
+            if (!charts.secondChart) {
+                charts.secondChart = echarts.init(document.getElementById('secondChart'));
+            }
+            if (!charts.thirdChart) {
+                charts.thirdChart = echarts.init(document.getElementById('thirdChart'));
+            }
+            if (!charts.fourthChart) {
+                charts.fourthChart = echarts.init(document.getElementById('fourthChart'));
+            }
+            
+            // 生成并设置图表选项
+            const types = ['bar', 'line', 'pie', 'scatter'];
+            const titles = [
+                document.getElementById('mainChartTitle').textContent,
+                document.getElementById('secondChartTitle').textContent,
+                document.getElementById('thirdChartTitle').textContent,
+                document.getElementById('fourthChartTitle').textContent
+            ];
+            
+            charts.mainChart.setOption(generateChartOptions(types[0], data, titles[0]));
+            charts.secondChart.setOption(generateChartOptions(types[1], data, titles[1]));
+            charts.thirdChart.setOption(generateChartOptions(types[2], data, titles[2]));
+            charts.fourthChart.setOption(generateChartOptions(types[3], data, titles[3]));
+        }
+
+        function renderTextAnalysis(textData, fileName) {
+            const analysis = analyzeText(textData.content);
+            
+            const chartContainer = document.getElementById('chartContainer');
+            const emptyState = document.getElementById('emptyState');
+            const textReport = document.getElementById('textAnalysisReport');
+            const mdContainer = document.getElementById('mdEditorContainer');
+            
+            emptyState.style.display = 'none';
+            chartContainer.style.display = 'none';
+            textReport.style.display = 'block';
+            mdContainer.classList.add('active');
+            
+            // 更新统计信息
+            document.getElementById('textStats').innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-value">${analysis.wordCount.toLocaleString()}</div>
+                    <div class="stat-label">字数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${analysis.lineCount.toLocaleString()}</div>
+                    <div class="stat-label">行数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${analysis.charCount.toLocaleString()}</div>
+                    <div class="stat-label">字符数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${analysis.topKeywords.length}</div>
+                    <div class="stat-label">关键词数</div>
+                </div>
+            `;
+            
+            // 更新关键词
+            document.getElementById('textSummary').innerHTML = analysis.summary;
+            document.getElementById('textContent').innerHTML = analysis.preview.replace(/\n/g, '<br>');
+            
+            // 自动生成 Markdown 报告
+            const mdContent = generateTextReportMarkdown(fileName, analysis, textData.content);
+            document.getElementById('mdTextarea').value = mdContent;
+            updateMarkdownPreview();
+        }
+
+        function generateTextReportMarkdown(fileName, analysis, content) {
+            return `# 文本分析报告
+
+## 文件信息
+- 文件名：${fileName}
+- 分析时间：${new Date().toLocaleString('zh-CN')}
+
+## 统计概览
+| 指标 | 数值 |
+|------|------|
+| 字数 | ${analysis.wordCount.toLocaleString()} |
+| 行数 | ${analysis.lineCount.toLocaleString()} |
+| 字符数 | ${analysis.charCount.toLocaleString()} |
+
+## 关键词提取
+${analysis.topKeywords.map(k => `- **${k.word}**: ${k.count}次`).join('\n')}
+
+## 内容摘要
+${analysis.summary}
+
+## 内容预览
+\`\`\`
+${analysis.preview}${analysis.preview.length >= 500 ? '...' : ''}
+\`\`\`
+
+---
+*报告由数据分析智能助手自动生成*
+`;
+        }
+
+        // ==========================================
+        // 事件处理函数
+        // ==========================================
+        async function handleFileSelect(input) {
+            const files = Array.from(input.files);
+            if (files.length === 0) return;
+            
+            const file = files[0];
+            currentFile = file;
+            currentFileType = getFileType(file.name);
+            
+            // 更新UI
+            updateFileTypeUI(currentFileType, file.name);
+            showFilePreview(file.name);
+            
+            // 显示加载状态
+            addMessage('bot', `正在解析文件: ${file.name}...`);
+            
+            try {
+                let result;
+                
+                if (currentFileType === 'data') {
+                    const ext = file.name.split('.').pop().toLowerCase();
+                    
+                    if (ext === 'xlsx' || ext === 'xls') {
+                        result = await parseExcel(file);
+                    } else if (ext === 'csv' || ext === 'tsv') {
+                        result = await parseCSV(file);
+                    } else if (ext === 'json') {
+                        result = await parseJSON(file);
+                    } else if (ext === 'xml') {
+                        result = await parseXML(file);
+                    }
+                    
+                    parsedData = result;
+                    
+                    // 显示数据预览
+                    showDataPreview(result);
+                    
+                    // 推荐图表
+                    const recommendations = analyzeDataForCharts(result);
+                    let tip = '';
+                    if (recommendations.length > 0) {
+                        tip = `⭐ 智能推荐: ${recommendations[0].description}`;
+                        switchChartType(recommendations[0].type);
+                    }
+                    
+                    // 更新图表
+                    renderCharts(result, recommendations[0]?.type);
+                    
+                    // 生成AI消息
+                    const aiMessage = `✅ **文件解析完成！**
+
+📊 **数据概览**
+- 文件名：${file.name}
+- 数据行数：${result.rows.length}
+- 数据列数：${result.columns.length}
+
+📋 **数据列**
+${result.columns.map(col => `- ${col}`).join('\n')}
+
+${tip}
+
+右侧已自动生成可视化图表，可点击图表类型按钮切换不同视图。`;
+                    
+                    addMessage('bot', aiMessage);
+                    
+                } else if (currentFileType === 'text') {
+                    result = await parseText(file);
+                    parsedText = result;
+                    
+                    // 分析文本
+                    renderTextAnalysis(result, file.name);
+                    
+                    // 生成AI消息
+                    const aiMessage = `✅ **文本解析完成！**
+
+📝 **文本概览**
+- 文件名：${file.name}
+- 字数：${result.wordCount.toLocaleString()}
+- 行数：${result.lineCount.toLocaleString()}
+- 字符数：${result.charCount.toLocaleString()}
+
+📌 **内容摘要**
+${analyzeText(result.content).summary}
+
+右侧已生成详细分析报告，可编辑 Markdown 报告或下载。`;
+                    
+                    addMessage('bot', aiMessage);
+                }
+                
+            } catch (error) {
+                console.error('File parse error:', error);
+                addMessage('bot', `❌ 文件解析失败：${error.message || '未知错误'}`);
+            }
+        }
+
+        function showFilePreview(fileName) {
+            const preview = document.getElementById('filePreview');
+            const nameSpan = document.getElementById('fileName');
+            preview.style.display = 'flex';
+            nameSpan.textContent = '📄 ' + fileName;
+        }
+
+        function clearFile() {
+            currentFile = null;
+            currentFileType = null;
+            parsedData = null;
+            parsedText = null;
+            
+            const fileInput = document.getElementById('fileInput');
+            if (fileInput) fileInput.value = '';
+            
+            const preview = document.getElementById('filePreview');
+            if (preview) preview.style.display = 'none';
+            
+            updateFileTypeUI(null, '');
+            
+            // 重置显示
+            document.getElementById('dataPreviewContainer').style.display = 'none';
+            document.getElementById('chartContainer').style.display = 'none';
+            document.getElementById('textAnalysisReport').style.display = 'none';
+            document.getElementById('emptyState').style.display = 'flex';
+            document.getElementById('mdEditorContainer').classList.add('active');
+        }
+
+        // ==========================================
+        // 图表功能函数
+        // ==========================================
+        function switchChartType(type) {
+            currentChartType = type;
+            
+            // 更新按钮状态
+            document.querySelectorAll('.chart-type-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.type === type);
+                btn.classList.remove('recommended');
+            });
+            document.querySelector(`.chart-type-btn[data-type="${type}"]`)?.classList.add('active');
+            
+            // 如果有数据，更新图表
+            if (parsedData) {
+                const types = ['bar', 'line', 'pie', 'scatter'];
+                const titles = [
+                    document.getElementById('mainChartTitle').textContent,
+                    document.getElementById('secondChartTitle').textContent,
+                    document.getElementById('thirdChartTitle').textContent,
+                    document.getElementById('fourthChartTitle').textContent
+                ];
+                
+                charts.mainChart.setOption(generateChartOptions(types[0], parsedData, titles[0]), true);
+                charts.secondChart.setOption(generateChartOptions(types[1], parsedData, titles[1]), true);
+                charts.thirdChart.setOption(generateChartOptions(types[2], parsedData, titles[2]), true);
+                charts.fourthChart.setOption(generateChartOptions(types[3], parsedData, titles[3]), true);
+            }
+        }
+
+        function refreshCharts() {
+            Object.values(charts).forEach(chart => {
+                if (chart) chart.resize();
+            });
+            showToast('✅ 图表已刷新');
+        }
+
+        function expandChart(chartId) {
+            const modal = document.getElementById('fullscreenModal');
+            const fullscreenChart = echarts.init(document.getElementById('fullscreenChart'));
+            
+            const originalChart = charts[chartId];
+            if (originalChart) {
+                fullscreenChart.setOption(originalChart.getOption());
+            }
+            
+            modal.classList.add('show');
+            setTimeout(() => fullscreenChart.resize(), 100);
+        }
+
+        function closeFullscreen() {
+            document.getElementById('fullscreenModal').classList.remove('show');
+            echarts.getInstanceByDom(document.getElementById('fullscreenChart'))?.dispose();
+        }
+
+        function exportChart(chartId) {
+            const chart = charts[chartId];
+            if (chart) {
+                const url = chart.getDataURL({ type: 'png', pixelRatio: 2, backgroundColor: '#1a1a2e' });
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${chartId}_${Date.now()}.png`;
+                a.click();
+                showToast('✅ 图表已导出');
+            }
+        }
+
+        function exportAllCharts() {
+            let exported = 0;
+            Object.entries(charts).forEach(([id, chart], index) => {
+                if (chart) {
+                    setTimeout(() => {
+                        const url = chart.getDataURL({ type: 'png', pixelRatio: 2, backgroundColor: '#1a1a2e' });
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `${id}_${Date.now()}.png`;
+                        a.click();
+                        exported++;
+                        if (exported === Object.keys(charts).length) {
+                            showToast('✅ 所有图表已导出');
+                        }
+                    }, index * 300);
+                }
+            });
+        }
+
+        // ==========================================
+        // Markdown 功能
+        // ==========================================
         function updateMarkdownPreview() {
             const textarea = document.getElementById('mdTextarea');
             const preview = document.getElementById('mdPreview');
@@ -1000,310 +2034,90 @@ SELECT region, SUM(sales) FROM sales GROUP BY region;
             setTimeout(() => toast.remove(), 3000);
         }
 
-        // 初始化图表
-        function initCharts() {
-            // 主图表 - 柱状图
-            charts.mainChart = echarts.init(document.getElementById('mainChart'));
-            chartOptions.mainChart = generateBarOption(sampleData.regions, sampleData.sales, '地区销售对比');
-            charts.mainChart.setOption(chartOptions.mainChart);
-
-            // 第二图表 - 折线图
-            charts.secondChart = echarts.init(document.getElementById('secondChart'));
-            chartOptions.secondChart = generateLineOption(sampleData.months, sampleData.trend, '月度销售趋势');
-            charts.secondChart.setOption(chartOptions.secondChart);
-
-            // 第三图表 - 饼图
-            charts.thirdChart = echarts.init(document.getElementById('thirdChart'));
-            chartOptions.thirdChart = generatePieOption(sampleData.categories, sampleData.categorySales, '产品类别占比');
-            charts.thirdChart.setOption(chartOptions.thirdChart);
-
-            // 第四图表 - 散点图
-            charts.fourthChart = echarts.init(document.getElementById('fourthChart'));
-            chartOptions.fourthChart = generateScatterOption('销售与利润关系');
-            charts.fourthChart.setOption(chartOptions.fourthChart);
-
-            // 监听窗口变化
-            window.addEventListener('resize', () => {
-                Object.values(charts).forEach(chart => chart.resize());
-            });
-        }
-
-        // 生成柱状图配置
-        function generateBarOption(xData, yData, title) {
-            return {
-                title: { text: title, left: 'center', textStyle: { fontSize: 14, fontWeight: 'bold' } },
-                tooltip: { trigger: 'axis' },
-                grid: { left: '10%', right: '5%', bottom: '15%', top: '20%' },
-                xAxis: { type: 'category', data: xData, axisLabel: { rotate: 0 } },
-                yAxis: { type: 'value', name: '销售额(万)' },
-                series: [{
-                    type: 'bar',
-                    data: yData,
-                    itemStyle: {
-                        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                            { offset: 0, color: '#667eea' },
-                            { offset: 1, color: '#764ba2' }
-                        ]),
-                        borderRadius: [4, 4, 0, 0]
-                    },
-                    label: { show: true, position: 'top', formatter: '{c}' }
-                }]
-            };
-        }
-
-        // 生成折线图配置
-        function generateLineOption(xData, yData, title) {
-            return {
-                title: { text: title, left: 'center', textStyle: { fontSize: 14, fontWeight: 'bold' } },
-                tooltip: { trigger: 'axis' },
-                grid: { left: '10%', right: '5%', bottom: '15%', top: '20%' },
-                xAxis: { type: 'category', data: xData, boundaryGap: false },
-                yAxis: { type: 'value', name: '销售额(万)' },
-                series: [{
-                    type: 'line',
-                    data: yData,
-                    smooth: true,
-                    areaStyle: {
-                        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                            { offset: 0, color: 'rgba(102,126,234,0.5)' },
-                            { offset: 1, color: 'rgba(102,126,234,0.1)' }
-                        ])
-                    },
-                    itemStyle: { color: '#667eea' },
-                    label: { show: true, position: 'top' }
-                }]
-            };
-        }
-
-        // 生成饼图配置
-        function generatePieOption(names, values, title) {
-            const pieData = names.map((name, i) => ({ name, value: values[i] }));
-            return {
-                title: { text: title, left: 'center', textStyle: { fontSize: 14, fontWeight: 'bold' } },
-                tooltip: { trigger: 'item', formatter: '{b}: {c}万 ({d}%)' },
-                legend: { orient: 'vertical', left: 'left', top: 'middle' },
-                series: [{
-                    type: 'pie',
-                    radius: ['40%', '70%'],
-                    center: ['60%', '50%'],
-                    data: pieData,
-                    emphasis: {
-                        itemStyle: { shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0,0,0,0.5)' }
-                    },
-                    label: { formatter: '{b}: {d}%' }
-                }]
-            };
-        }
-
-        // 生成散点图配置
-        function generateScatterOption(title) {
-            const scatterData = sampleData.sales.map((v, i) => [
-                v, 
-                v * (0.6 + Math.random() * 0.4),
-                v * (0.8 + Math.random() * 0.4)
-            ]);
-            return {
-                title: { text: title, left: 'center', textStyle: { fontSize: 14, fontWeight: 'bold' } },
-                tooltip: { trigger: 'item' },
-                grid: { left: '10%', right: '5%', bottom: '15%', top: '20%' },
-                xAxis: { type: 'value', name: '销售额', splitLine: { lineStyle: { type: 'dashed' } } },
-                yAxis: { type: 'value', name: '利润', splitLine: { lineStyle: { type: 'dashed' } } },
-                series: [{
-                    type: 'scatter',
-                    data: scatterData,
-                    symbolSize: 15,
-                    itemStyle: { color: '#764ba2', opacity: 0.7 }
-                }]
-            };
-        }
-
-        // 生成面积图配置
-        function generateAreaOption(xData, yData, title) {
-            return {
-                title: { text: title, left: 'center', textStyle: { fontSize: 14, fontWeight: 'bold' } },
-                tooltip: { trigger: 'axis' },
-                grid: { left: '10%', right: '5%', bottom: '15%', top: '20%' },
-                xAxis: { type: 'category', data: xData, boundaryGap: false },
-                yAxis: { type: 'value', name: '数值' },
-                series: [{
-                    type: 'line',
-                    data: yData,
-                    smooth: true,
-                    areaStyle: {},
-                    itemStyle: { color: '#73A0FA' }
-                }]
-            };
-        }
-
-        // 生成雷达图配置
-        function generateRadarOption(title) {
-            return {
-                title: { text: title, left: 'center', textStyle: { fontSize: 14, fontWeight: 'bold' } },
-                tooltip: {},
-                radar: {
-                    indicator: [
-                        { name: '销售', max: 1000 },
-                        { name: '利润', max: 500 },
-                        { name: '增长', max: 100 },
-                        { name: '客户', max: 1000 },
-                        { name: '复购', max: 100 }
-                    ],
-                    center: ['50%', '55%']
-                },
-                series: [{
-                    type: 'radar',
-                    data: [{
-                        value: [850, 420, 85, 680, 72],
-                        name: '业务指标',
-                        areaStyle: { color: 'rgba(102,126,234,0.5)' },
-                        itemStyle: { color: '#667eea' }
-                    }]
-                }]
-            };
-        }
-
-        // 切换图表类型
-        function switchChartType(type) {
-            currentChartType = type;
-            
-            // 更新按钮状态
-            document.querySelectorAll('.chart-type-btn').forEach(btn => {
-                btn.classList.toggle('active', btn.dataset.type === type);
-            });
-
-            // 更新所有图表
-            if (type === 'bar') {
-                charts.mainChart.setOption(generateBarOption(sampleData.regions, sampleData.sales, '地区销售对比'));
-                charts.secondChart.setOption(generateLineOption(sampleData.months, sampleData.trend, '月度销售趋势'));
-                charts.thirdChart.setOption(generatePieOption(sampleData.categories, sampleData.categorySales, '产品类别占比'));
-                charts.fourthChart.setOption(generateScatterOption('销售与利润关系'));
-            } else if (type === 'line') {
-                charts.mainChart.setOption(generateLineOption(sampleData.regions, sampleData.sales, '地区销售趋势'));
-                charts.secondChart.setOption(generateLineOption(sampleData.months, sampleData.trend, '月度销售趋势'));
-                charts.thirdChart.setOption(generateLineOption(sampleData.categories, sampleData.categorySales, '产品销售趋势'));
-                charts.fourthChart.setOption(generateLineOption(sampleData.regions, sampleData.sales.map(v => v * 0.7), '利润趋势'));
-            } else if (type === 'pie') {
-                charts.mainChart.setOption(generatePieOption(sampleData.regions, sampleData.sales, '地区销售占比'));
-                charts.secondChart.setOption(generatePieOption(sampleData.months.slice(0, 6), sampleData.trend.slice(0, 6), '上半年销售占比'));
-                charts.thirdChart.setOption(generatePieOption(sampleData.categories, sampleData.categorySales, '产品类别占比'));
-                charts.fourthChart.setOption(generatePieOption(sampleData.regions.slice(0, 5), sampleData.sales.slice(0, 5), 'TOP5地区占比'));
-            } else if (type === 'scatter') {
-                charts.mainChart.setOption(generateScatterOption('地区销售与利润关系'));
-                charts.secondChart.setOption(generateScatterOption('月度销售与增长关系'));
-                charts.thirdChart.setOption(generateScatterOption('产品销售与利润关系'));
-                charts.fourthChart.setOption(generateScatterOption('客户购买与价值关系'));
-            } else if (type === 'area') {
-                charts.mainChart.setOption(generateAreaOption(sampleData.regions, sampleData.sales, '地区销售面积图'));
-                charts.secondChart.setOption(generateAreaOption(sampleData.months, sampleData.trend, '月度销售面积图'));
-                charts.thirdChart.setOption(generateAreaOption(sampleData.categories, sampleData.categorySales, '产品销售面积图'));
-                charts.fourthChart.setOption(generateAreaOption(sampleData.regions, sampleData.sales.map(v => v * 0.8), '利润面积图'));
-            } else if (type === 'radar') {
-                charts.mainChart.setOption(generateRadarOption('综合业务指标'));
-                charts.secondChart.setOption(generateRadarOption('华东地区指标'));
-                charts.thirdChart.setOption(generateRadarOption('华北地区指标'));
-                charts.fourthChart.setOption(generateRadarOption('华南地区指标'));
-            }
-        }
-
-        // 发送消息
-        async function sendMessage() {
+        // ==========================================
+        // 聊天功能
+        // ==========================================
+        function sendMessage() {
             const input = document.getElementById('chatInput');
             const message = input.value.trim();
             
-            if (!message && !currentFile) {
-                return;
-            }
-
-            // 添加用户消息
-            addMessage('user', message || `📎 上传了文件: ${currentFile.name}`);
+            if (!message) return;
             
+            addMessage('user', message);
             input.value = '';
-
+            
             // 添加加载指示器
             const loadingId = addLoadingMessage();
-
+            
             // 模拟AI响应
             setTimeout(() => {
                 removeLoadingMessage(loadingId);
                 
-                // 根据输入生成响应
-                const response = generateAIResponse(message);
-                addMessage('bot', response);
+                let response = '';
+                const lowerMsg = message.toLowerCase();
                 
-                // 更新图表
-                if (response.includes('柱状图')) {
-                    switchChartType('bar');
-                } else if (response.includes('折线图') || response.includes('趋势')) {
-                    switchChartType('line');
-                } else if (response.includes('饼图') || response.includes('占比')) {
-                    switchChartType('pie');
+                if (lowerMsg.includes('分析') || lowerMsg.includes('图表')) {
+                    response = `根据您的需求，我可以帮您：
+
+📊 **数据分析**
+- 上传 Excel/CSV/JSON 数据文件
+- 自动识别数据结构和类型
+- 智能推荐最佳图表类型
+
+📈 **支持的图表**
+- 柱状图：比较分类数据
+- 折线图：展示趋势变化
+- 饼图：显示占比分布
+- 散点图：分析相关性
+- 面积图：累积效果展示
+- 雷达图：多维度对比
+
+请上传数据文件开始分析！`;
+                } else if (lowerMsg.includes('推荐')) {
+                    response = `🤖 **智能图表推荐说明**
+
+我会根据您的数据自动推荐最佳图表类型：
+
+1. **分类+数值数据** → 柱状图/饼图
+2. **时间序列数据** → 折线图
+3. **多指标对比** → 雷达图
+4. **相关性分析** → 散点图
+5. **分布密度** → 热力图
+
+上传数据文件后，系统会自动分析并推荐最适合的图表类型！`;
+                } else if (lowerMsg.includes('报表') || lowerMsg.includes('报告')) {
+                    response = `📝 **报表生成功能**
+
+我可以帮您生成 Markdown 格式的分析报告，包含：
+
+- 📋 数据概览统计
+- 📊 可视化图表
+- 🔍 关键发现
+- 💡 建议与结论
+
+上传文本文件后，系统会自动分析内容并生成摘要报告。`;
+                } else {
+                    response = `收到您的消息！
+
+我能帮您：
+- 📊 解析 Excel/CSV/JSON/XML 数据文件
+- 📈 根据数据生成智能图表推荐
+- 📝 分析 PDF/Word/TXT/MD 文本内容
+- 📄 生成 Markdown 分析报告
+
+请上传文件或告诉我您的分析需求~`;
                 }
-            }, 1500);
+                
+                addMessage('bot', response);
+            }, 1000);
         }
 
-        // 生成AI响应
-        function generateAIResponse(message) {
-            const lowerMsg = message.toLowerCase();
-            
-            if (lowerMsg.includes('销售') || lowerMsg.includes('地区')) {
-                return `根据您的需求，我为您生成了以下分析：
-
-**📊 地区销售分析**
-- 华东地区表现最佳，销售额 859 万
-- 华北地区紧随其后，销售额 754 万
-- 西北地区有较大增长空间
-
-**SQL查询已生成：**
-\`\`\`sql
-SELECT region, SUM(sales_amount) as total 
-FROM sales_table 
-WHERE date >= '2024-01-01' 
-GROUP BY region 
-ORDER BY total DESC
-\`\`\`
-
-右侧图表已更新为柱状图展示。`;
-            } else if (lowerMsg.includes('趋势') || lowerMsg.includes('月度')) {
-                return `为您分析了销售趋势：
-
-**📈 月度趋势发现**
-- 下半年销售明显高于上半年
-- 10-12月为销售旺季
-- 环比增长率约 15%
-
-已切换为折线图展示趋势变化。`;
-            } else if (lowerMsg.includes('占比') || lowerMsg.includes('分类')) {
-                return `产品类别占比分析：
-
-**🥧 类别销售占比**
-- 电子产品占 35%（最高）
-- 服装类占 25%
-- 食品类占 22%
-
-已切换为饼图展示占比分布。`;
-            } else if (lowerMsg.includes('客户') || lowerMsg.includes('用户')) {
-                return `客户分析结果：
-
-**👥 客户洞察**
-- 高价值客户占比 20%，贡献 65% 营收
-- 客户复购率平均为 32%
-- 华东地区客户活跃度最高
-
-已更新相关性散点图。`;
-            } else {
-                return `我已经理解您的需求！
-
-**已为您准备：**
-- 📊 柱状图 - 地区销售对比
-- 📈 折线图 - 销售趋势
-- 🥧 饼图 - 产品占比
-- ⚪ 散点图 - 数据分布
-
-您可以点击上方的图表类型按钮切换不同视图，或上传文件进行更深入的分析。`;
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
             }
         }
 
-        // 添加消息到聊天区域
         function addMessage(type, content) {
             const container = document.getElementById('chatMessages');
             const messageDiv = document.createElement('div');
@@ -1311,8 +2125,15 @@ ORDER BY total DESC
             
             const time = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
             
+            // 处理 Markdown 格式
+            const formattedContent = content
+                .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+                .replace(/\n/g, '<br>')
+                .replace(/`([^`]+)`/g, '<code style="background:#0f3460;padding:2px 6px;border-radius:4px;">$1</code>')
+                .replace(/- (.*)/g, '<div style="margin-left:10px;">• $1</div>');
+            
             messageDiv.innerHTML = `
-                <div>${content.replace(/\n/g, '<br>').replace(/`([^`]+)`/g, '<code>$1</code>').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')}</div>
+                <div>${formattedContent}</div>
                 <div class="timestamp">${type === 'user' ? '你' : '助手'} · ${time}</div>
             `;
             
@@ -1320,7 +2141,6 @@ ORDER BY total DESC
             container.scrollTop = container.scrollHeight;
         }
 
-        // 添加加载消息
         function addLoadingMessage() {
             const container = document.getElementById('chatMessages');
             const id = 'loading-' + Date.now();
@@ -1340,207 +2160,47 @@ ORDER BY total DESC
             return id;
         }
 
-        // 移除加载消息
         function removeLoadingMessage(id) {
             const el = document.getElementById(id);
             if (el) el.remove();
         }
 
-        // 处理回车发送
-        function handleKeyPress(event) {
-            if (event.key === 'Enter') {
-                sendMessage();
-            }
-        }
-
-        // 文件选择处理
-        function handleFileSelect(input) {
-            const files = input.files;
-            if (!files || files.length === 0) return;
-
-            // 处理多文件上传
-            Array.from(files).forEach((file, index) => {
-                setTimeout(() => {
-                    processFile(file);
-                }, index * 500); // 多文件间隔处理
-            });
-        }
-
-        function processFile(file) {
-            currentFile = file;
-            const fileNameEl = document.getElementById('fileName');
-            const filePreviewEl = document.getElementById('filePreview');
-            
-            // 显示文件信息
-            if (files.length > 1) {
-                fileNameEl.textContent = `已选择 ${files.length} 个文件`;
-            } else {
-                fileNameEl.textContent = file.name;
-            }
-            filePreviewEl.style.display = 'flex';
-            
-            // 显示上传消息
-            addMessage('user', `📎 上传了文件: ${file.name}`);
-            
-            // 模拟分析
-            const loadingId = addLoadingMessage();
-            
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                setTimeout(() => {
-                    removeLoadingMessage(loadingId);
-                    
-                    const fileType = getFileType(file.name);
-                    let response = `文件已上传成功！\n\n`;
-                    response += `**📄 文件信息**\n`;
-                    response += `- 文件名: ${file.name}\n`;
-                    response += `- 类型: ${fileType}\n`;
-                    response += `- 大小: ${(file.size / 1024).toFixed(1)} KB\n\n`;
-                    
-                    // 如果是 Markdown 文件，读取内容并渲染
-                    if (fileType === 'markdown') {
-                        const mdContent = e.target.result;
-                        response += `**📝 Markdown 内容预览**\n`;
-                        response += `\`\`\`\n${mdContent.substring(0, 500)}${mdContent.length > 500 ? '...' : ''}\n\`\`\`\n\n`;
-                        response += `**🔍 分析结果**\n`;
-                        response += `- 检测到 Markdown 格式文件\n`;
-                        response += `- 内容已加载到 Markdown 编辑器\n`;
-                        response += `- 可以直接编辑或下载\n`;
-                        
-                        // 将内容填入 Markdown 编辑器
-                        const mdEditor = document.getElementById('mdEditor');
-                        if (mdEditor) {
-                            mdEditor.value = mdContent;
-                            updateMarkdownPreview();
-                        }
-                        
-                        // 自动切换到 Markdown 标签
-                        switchRightPanel('markdown');
-                    } else {
-                        response += `**🔍 分析结果**\n`;
-                        response += `- 检测到 ${fileType} 格式文件\n`;
-                        response += `- 数据已加载，准备生成可视化图表\n\n`;
-                        response += `<div class="chart-hint">`;
-                        response += `<strong>💡 提示</strong>：根据文件内容，已为您准备了销售数据分析图表。`;
-                        response += `</div>`;
-                    }
-                    
-                    addMessage('bot', response);
-                }, 1000);
-            };
-            
-            // 读取文件内容
-            if (fileType === 'markdown') {
-                reader.readAsText(file);
-            } else if (fileType === 'csv') {
-                reader.readAsText(file);
-            } else {
-                reader.readAsArrayBuffer(file);
-            }
-        }
-                
-                // 自动切换到合适的图表
-                if (fileType === 'Excel' || fileType === 'CSV') {
-                    switchChartType('bar');
-                }
-            }, 2000);
-        }
-
-        // 获取文件类型
-        function getFileType(filename) {
-            const ext = filename.split('.').pop().toLowerCase();
-            const types = {
-                'pdf': 'PDF文档',
-                'doc': 'Word文档',
-                'docx': 'Word文档',
-                'xls': 'Excel表格',
-                'xlsx': 'Excel表格',
-                'csv': 'CSV数据',
-                'txt': '文本文件',
-                'md': 'Markdown文档',
-                'markdown': 'Markdown文档'
-            };
-            return types[ext] || '未知格式';
-        }
-
-        // 清除文件
-        function clearFile() {
-            currentFile = null;
-            files = [];
-            const fileInput = document.getElementById('fileInput');
-            if (fileInput) fileInput.value = '';
-            const filePreview = document.getElementById('filePreview');
-            if (filePreview) filePreview.style.display = 'none';
-            const fileName = document.getElementById('fileName');
-            if (fileName) fileName.textContent = '';
-        }
+        // ==========================================
+        // 拖拽上传
+        // ==========================================
+        const fileUploadArea = document.getElementById('fileUploadArea');
         
-        let files = [];
-
-        // 刷新图表
-        function refreshCharts() {
-            Object.values(charts).forEach(chart => chart.resize());
-        }
-
-        // 导出单个图表
-        function exportChart(chartId) {
-            const chart = charts[chartId];
-            if (!chart) return;
-
-            const url = chart.getDataURL({ type: 'png', pixelRatio: 2, backgroundColor: '#fff' });
-            const link = document.createElement('a');
-            link.download = `${chartId}.png`;
-            link.href = url;
-            link.click();
-        }
-
-        // 导出全部图表
-        function exportAllCharts() {
-            Object.keys(charts).forEach((chartId, index) => {
-                setTimeout(() => exportChart(chartId), index * 500);
-            });
-        }
-
-        // 全屏查看图表
-        function expandChart(chartId) {
-            const modal = document.getElementById('fullscreenModal');
-            const fullscreenChart = echarts.init(document.getElementById('fullscreenChart'));
+        fileUploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            fileUploadArea.classList.add('dragover');
+        });
+        
+        fileUploadArea.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            fileUploadArea.classList.remove('dragover');
+        });
+        
+        fileUploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            fileUploadArea.classList.remove('dragover');
             
-            const titles = {
-                'mainChart': '地区销售对比',
-                'secondChart': '销售趋势',
-                'thirdChart': '销售占比',
-                'fourthChart': '数据分布'
-            };
-            
-            document.getElementById('modalTitle').textContent = titles[chartId] || '图表详情';
-            
-            const originalOption = chartOptions[chartId] || charts[chartId].getOption();
-            fullscreenChart.setOption(originalOption);
-            
-            modal.classList.add('active');
-            
-            // 监听窗口变化
-            fullscreenChart.resize();
-        }
-
-        // 关闭全屏
-        function closeFullscreen() {
-            document.getElementById('fullscreenModal').classList.remove('active');
-            echarts.getInstanceByDom(document.getElementById('fullscreenChart'))?.dispose();
-        }
-
-        // 点击模态框外部关闭
-        document.getElementById('fullscreenModal').addEventListener('click', (e) => {
-            if (e.target === e.currentTarget) {
-                closeFullscreen();
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                const input = document.getElementById('fileInput');
+                const dt = new DataTransfer();
+                Array.from(files).forEach(f => dt.items.add(f));
+                input.files = dt.files;
+                handleFileSelect(input);
             }
         });
 
-        // 页面加载完成后初始化
-        document.addEventListener('DOMContentLoaded', () => {
-            initCharts();
-            updateMarkdownPreview();
+        // ==========================================
+        // 初始化
+        // ==========================================
+        window.addEventListener('resize', () => {
+            Object.values(charts).forEach(chart => {
+                if (chart) chart.resize();
+            });
         });
     </script>
 </body>
