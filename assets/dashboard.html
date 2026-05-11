@@ -712,7 +712,7 @@
                 <div class="file-upload-row">
                     <label class="file-upload-btn" id="fileUploadLabel">
                         📎 上传文件
-                        <input type="file" id="fileInput" accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt" onchange="handleFileSelect(this)">
+                        <input type="file" id="fileInput" accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.md,.markdown" onchange="handleFileSelect(this)" multiple>
                     </label>
                     <div id="filePreview" style="display: none; flex: 1;" class="file-preview">
                         <span id="fileName"></span>
@@ -1355,12 +1355,29 @@ ORDER BY total DESC
 
         // 文件选择处理
         function handleFileSelect(input) {
-            const file = input.files[0];
-            if (!file) return;
+            const files = input.files;
+            if (!files || files.length === 0) return;
 
+            // 处理多文件上传
+            Array.from(files).forEach((file, index) => {
+                setTimeout(() => {
+                    processFile(file);
+                }, index * 500); // 多文件间隔处理
+            });
+        }
+
+        function processFile(file) {
             currentFile = file;
-            document.getElementById('fileName').textContent = file.name;
-            document.getElementById('filePreview').style.display = 'flex';
+            const fileNameEl = document.getElementById('fileName');
+            const filePreviewEl = document.getElementById('filePreview');
+            
+            // 显示文件信息
+            if (files.length > 1) {
+                fileNameEl.textContent = `已选择 ${files.length} 个文件`;
+            } else {
+                fileNameEl.textContent = file.name;
+            }
+            filePreviewEl.style.display = 'flex';
             
             // 显示上传消息
             addMessage('user', `📎 上传了文件: ${file.name}`);
@@ -1368,23 +1385,59 @@ ORDER BY total DESC
             // 模拟分析
             const loadingId = addLoadingMessage();
             
-            setTimeout(() => {
-                removeLoadingMessage(loadingId);
-                
-                const fileType = getFileType(file.name);
-                let response = `文件已上传成功！\n\n`;
-                response += `**📄 文件信息**\n`;
-                response += `- 文件名: ${file.name}\n`;
-                response += `- 类型: ${fileType}\n`;
-                response += `- 大小: ${(file.size / 1024).toFixed(1)} KB\n\n`;
-                response += `**🔍 分析结果**\n`;
-                response += `- 检测到 ${fileType} 格式文件\n`;
-                response += `- 数据已加载，准备生成可视化图表\n\n`;
-                response += `<div class="chart-hint">`;
-                response += `<strong>💡 提示</strong>：根据文件内容，已为您准备了销售数据分析图表。`;
-                response += `</div>`;
-                
-                addMessage('bot', response);
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                setTimeout(() => {
+                    removeLoadingMessage(loadingId);
+                    
+                    const fileType = getFileType(file.name);
+                    let response = `文件已上传成功！\n\n`;
+                    response += `**📄 文件信息**\n`;
+                    response += `- 文件名: ${file.name}\n`;
+                    response += `- 类型: ${fileType}\n`;
+                    response += `- 大小: ${(file.size / 1024).toFixed(1)} KB\n\n`;
+                    
+                    // 如果是 Markdown 文件，读取内容并渲染
+                    if (fileType === 'markdown') {
+                        const mdContent = e.target.result;
+                        response += `**📝 Markdown 内容预览**\n`;
+                        response += `\`\`\`\n${mdContent.substring(0, 500)}${mdContent.length > 500 ? '...' : ''}\n\`\`\`\n\n`;
+                        response += `**🔍 分析结果**\n`;
+                        response += `- 检测到 Markdown 格式文件\n`;
+                        response += `- 内容已加载到 Markdown 编辑器\n`;
+                        response += `- 可以直接编辑或下载\n`;
+                        
+                        // 将内容填入 Markdown 编辑器
+                        const mdEditor = document.getElementById('mdEditor');
+                        if (mdEditor) {
+                            mdEditor.value = mdContent;
+                            updateMarkdownPreview();
+                        }
+                        
+                        // 自动切换到 Markdown 标签
+                        switchRightPanel('markdown');
+                    } else {
+                        response += `**🔍 分析结果**\n`;
+                        response += `- 检测到 ${fileType} 格式文件\n`;
+                        response += `- 数据已加载，准备生成可视化图表\n\n`;
+                        response += `<div class="chart-hint">`;
+                        response += `<strong>💡 提示</strong>：根据文件内容，已为您准备了销售数据分析图表。`;
+                        response += `</div>`;
+                    }
+                    
+                    addMessage('bot', response);
+                }, 1000);
+            };
+            
+            // 读取文件内容
+            if (fileType === 'markdown') {
+                reader.readAsText(file);
+            } else if (fileType === 'csv') {
+                reader.readAsText(file);
+            } else {
+                reader.readAsArrayBuffer(file);
+            }
+        }
                 
                 // 自动切换到合适的图表
                 if (fileType === 'Excel' || fileType === 'CSV') {
@@ -1403,7 +1456,9 @@ ORDER BY total DESC
                 'xls': 'Excel表格',
                 'xlsx': 'Excel表格',
                 'csv': 'CSV数据',
-                'txt': '文本文件'
+                'txt': '文本文件',
+                'md': 'Markdown文档',
+                'markdown': 'Markdown文档'
             };
             return types[ext] || '未知格式';
         }
@@ -1411,9 +1466,16 @@ ORDER BY total DESC
         // 清除文件
         function clearFile() {
             currentFile = null;
-            document.getElementById('fileInput').value = '';
-            document.getElementById('filePreview').style.display = 'none';
+            files = [];
+            const fileInput = document.getElementById('fileInput');
+            if (fileInput) fileInput.value = '';
+            const filePreview = document.getElementById('filePreview');
+            if (filePreview) filePreview.style.display = 'none';
+            const fileName = document.getElementById('fileName');
+            if (fileName) fileName.textContent = '';
         }
+        
+        let files = [];
 
         // 刷新图表
         function refreshCharts() {
