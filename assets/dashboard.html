@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>数据分析与报表系统</title>
+    <title>数据分析智能助手</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <style>
         * {
@@ -14,194 +14,232 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-
-        /* 头部 */
-        .header {
-            text-align: center;
-            color: white;
-            margin-bottom: 30px;
-        }
-
-        .header h1 {
-            font-size: 2.5rem;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
-        }
-
-        .header p {
-            opacity: 0.9;
-            font-size: 1.1rem;
-        }
-
-        /* 主卡片 */
-        .main-card {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            height: 100vh;
             overflow: hidden;
+            background: #1a1a2e;
         }
 
-        /* 标签栏 */
-        .tabs {
+        .app-container {
             display: flex;
-            background: #f8f9fa;
-            border-bottom: 1px solid #e9ecef;
+            height: 100vh;
         }
 
-        .tab {
-            flex: 1;
-            padding: 18px;
+        /* 左侧对话区域 */
+        .chat-panel {
+            width: 420px;
+            background: #16213e;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid #0f3460;
+        }
+
+        .chat-header {
+            padding: 20px;
+            background: #0f3460;
+            color: white;
             text-align: center;
-            cursor: pointer;
-            transition: all 0.3s;
-            border-bottom: 3px solid transparent;
-            font-weight: 500;
-            color: #6c757d;
         }
 
-        .tab:hover {
-            background: #e9ecef;
+        .chat-header h2 {
+            font-size: 1.2rem;
+            margin-bottom: 5px;
         }
 
-        .tab.active {
-            background: white;
-            color: #667eea;
-            border-bottom-color: #667eea;
+        .chat-header p {
+            font-size: 0.85rem;
+            opacity: 0.8;
         }
 
-        .tab-content {
-            display: none;
-            padding: 30px;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-
-        /* 查询区域 */
-        .query-section {
-            margin-bottom: 30px;
-        }
-
-        .query-input-group {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-
-        .query-input {
+        .chat-messages {
             flex: 1;
-            padding: 15px 20px;
-            border: 2px solid #e9ecef;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .message {
+            max-width: 90%;
+            padding: 12px 16px;
             border-radius: 12px;
-            font-size: 1rem;
-            transition: all 0.3s;
+            line-height: 1.6;
+            font-size: 0.95rem;
+            animation: fadeIn 0.3s ease;
         }
 
-        .query-input:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 4px rgba(102,126,234,0.1);
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
-        .btn {
-            padding: 15px 30px;
-            border: none;
-            border-radius: 12px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .btn-primary {
+        .message.user {
+            align-self: flex-end;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
+            border-bottom-right-radius: 4px;
         }
 
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(102,126,234,0.4);
+        .message.bot {
+            align-self: flex-start;
+            background: #1f4068;
+            color: #e8e8e8;
+            border-bottom-left-radius: 4px;
         }
 
-        .btn-secondary {
-            background: #6c757d;
-            color: white;
+        .message.file-upload {
+            background: #2d5a27;
+            border: 1px solid #4a9c3d;
         }
 
-        /* 快速查询 */
-        .quick-queries {
+        .message.file-upload .file-info {
             display: flex;
-            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .message.file-upload .file-icon {
+            font-size: 1.5rem;
+        }
+
+        .message .timestamp {
+            font-size: 0.75rem;
+            opacity: 0.6;
+            margin-top: 5px;
+        }
+
+        .message .chart-hint {
+            background: rgba(102, 126, 234, 0.2);
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 10px;
+            border-left: 3px solid #667eea;
+        }
+
+        .message .chart-hint strong {
+            color: #667eea;
+        }
+
+        /* 聊天输入区域 */
+        .chat-input-area {
+            padding: 15px;
+            background: #0f3460;
+            border-top: 1px solid #1a1a2e;
+        }
+
+        .file-upload-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .file-upload-btn {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 10px 15px;
+            background: rgba(255,255,255,0.1);
+            border: 1px dashed rgba(255,255,255,0.3);
+            border-radius: 8px;
+            color: #e8e8e8;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+        }
+
+        .file-upload-btn:hover {
+            background: rgba(255,255,255,0.2);
+            border-color: #667eea;
+        }
+
+        .file-upload-btn input {
+            display: none;
+        }
+
+        .chat-input-wrapper {
+            display: flex;
             gap: 10px;
         }
 
-        .quick-query {
-            padding: 8px 16px;
-            background: #f8f9fa;
-            border: 1px solid #e9ecef;
-            border-radius: 20px;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-size: 0.9rem;
-        }
-
-        .quick-query:hover {
-            background: #667eea;
+        .chat-input {
+            flex: 1;
+            padding: 12px 16px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 25px;
             color: white;
+            font-size: 0.95rem;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        .chat-input:focus {
             border-color: #667eea;
+            background: rgba(255,255,255,0.15);
         }
 
-        /* 图表区域 */
-        .charts-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
-            gap: 30px;
-            margin-top: 30px;
+        .chat-input::placeholder {
+            color: rgba(255,255,255,0.5);
         }
 
-        .chart-card {
-            background: white;
-            border-radius: 16px;
-            padding: 20px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        .send-btn {
+            width: 45px;
+            height: 45px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 50%;
+            color: white;
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .send-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 5px 20px rgba(102,126,234,0.5);
+        }
+
+        /* 右侧图表区域 */
+        .chart-panel {
+            flex: 1;
+            background: #f5f7fa;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
         }
 
         .chart-header {
+            padding: 15px 25px;
+            background: white;
+            border-bottom: 1px solid #e0e0e0;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 15px;
         }
 
-        .chart-title {
-            font-size: 1.1rem;
-            font-weight: 600;
+        .chart-header h2 {
             color: #2c3e50;
+            font-size: 1.3rem;
         }
 
         .chart-actions {
             display: flex;
-            gap: 8px;
+            gap: 10px;
         }
 
         .chart-btn {
-            padding: 6px 12px;
-            border: 1px solid #e9ecef;
+            padding: 8px 16px;
+            border: 1px solid #e0e0e0;
             background: white;
             border-radius: 6px;
             cursor: pointer;
-            font-size: 0.8rem;
+            font-size: 0.85rem;
             transition: all 0.3s;
+            color: #666;
         }
 
         .chart-btn:hover {
@@ -210,212 +248,234 @@
             border-color: #667eea;
         }
 
-        .chart-container {
-            width: 100%;
-            height: 400px;
+        .chart-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
         }
 
         /* 图表类型选择器 */
-        .chart-type-selector {
+        .chart-type-bar {
+            padding: 15px 25px;
+            background: white;
+            border-bottom: 1px solid #e0e0e0;
             display: flex;
             gap: 10px;
-            margin-bottom: 20px;
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 12px;
         }
 
         .chart-type-btn {
-            flex: 1;
-            padding: 12px;
-            border: 2px solid #e9ecef;
+            padding: 8px 20px;
+            border: 2px solid #e0e0e0;
             background: white;
-            border-radius: 10px;
+            border-radius: 20px;
             cursor: pointer;
+            font-size: 0.9rem;
             transition: all 0.3s;
-            text-align: center;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
 
         .chart-type-btn:hover {
             border-color: #667eea;
+            color: #667eea;
         }
 
         .chart-type-btn.active {
-            border-color: #667eea;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
+            border-color: transparent;
         }
 
-        .chart-type-btn .icon {
-            font-size: 1.5rem;
-            margin-bottom: 5px;
-        }
-
-        .chart-type-btn .label {
-            font-size: 0.85rem;
-        }
-
-        /* 报表区域 */
-        .report-content {
-            background: #f8f9fa;
-            border-radius: 12px;
+        /* 图表容器 */
+        .chart-container-wrapper {
+            flex: 1;
             padding: 25px;
-            line-height: 1.8;
+            overflow: auto;
         }
 
-        .report-content h2 {
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 25px;
+            height: 100%;
+        }
+
+        .chart-card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chart-card-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chart-card-title {
+            font-weight: 600;
             color: #2c3e50;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #667eea;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
-        .report-content h3 {
-            color: #34495e;
-            margin: 20px 0 10px 0;
+        .chart-card-actions {
+            display: flex;
+            gap: 8px;
         }
 
-        .report-content pre {
-            background: #2c3e50;
-            color: #ecf0f1;
-            padding: 20px;
-            border-radius: 8px;
-            overflow-x: auto;
-            margin: 15px 0;
+        .mini-btn {
+            width: 30px;
+            height: 30px;
+            border: 1px solid #e0e0e0;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            font-size: 0.8rem;
         }
 
-        .report-content table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 15px 0;
-        }
-
-        .report-content th, .report-content td {
-            padding: 12px;
-            text-align: left;
-            border: 1px solid #e9ecef;
-        }
-
-        .report-content th {
+        .mini-btn:hover {
             background: #667eea;
             color: white;
+            border-color: #667eea;
         }
 
-        .report-content tr:nth-child(even) {
-            background: #f8f9fa;
-        }
-
-        /* SQL结果 */
-        .sql-result {
-            background: #2c3e50;
-            color: #ecf0f1;
-            padding: 20px;
-            border-radius: 12px;
-            margin-top: 20px;
-        }
-
-        .sql-result pre {
-            margin: 0;
-            white-space: pre-wrap;
-        }
-
-        .sql-status {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            margin-bottom: 15px;
-        }
-
-        .sql-status.success {
-            background: #27ae60;
-            color: white;
-        }
-
-        .sql-status.error {
-            background: #e74c3c;
-            color: white;
-        }
-
-        /* 加载状态 */
-        .loading {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 60px;
-        }
-
-        .spinner {
-            width: 50px;
-            height: 50px;
-            border: 4px solid #e9ecef;
-            border-top-color: #667eea;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
+        .chart-card-body {
+            flex: 1;
+            padding: 15px;
+            min-height: 300px;
         }
 
         /* 空状态 */
-        .empty-state {
-            text-align: center;
-            padding: 60px;
-            color: #6c757d;
+        .empty-chart-state {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #999;
         }
 
-        .empty-state .icon {
+        .empty-chart-state .icon {
             font-size: 4rem;
             margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .empty-chart-state p {
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+        }
+
+        .empty-chart-state .hint {
+            font-size: 0.9rem;
+            color: #bbb;
+        }
+
+        /* 加载动画 */
+        .typing-indicator {
+            display: flex;
+            gap: 5px;
+            padding: 15px;
+        }
+
+        .typing-indicator span {
+            width: 8px;
+            height: 8px;
+            background: #667eea;
+            border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out;
+        }
+
+        .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+        .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+
+        /* 滚动条样式 */
+        .chat-messages::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .chat-messages::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.3);
+            border-radius: 3px;
         }
 
         /* 响应式 */
-        @media (max-width: 768px) {
+        @media (max-width: 1024px) {
             .charts-grid {
                 grid-template-columns: 1fr;
             }
-            
-            .query-input-group {
+        }
+
+        @media (max-width: 768px) {
+            .app-container {
                 flex-direction: column;
             }
             
-            .header h1 {
-                font-size: 1.8rem;
+            .chat-panel {
+                width: 100%;
+                height: 50vh;
+            }
+            
+            .chart-panel {
+                height: 50vh;
             }
         }
 
-        /* 数据上传区域 */
-        .upload-zone {
-            border: 2px dashed #e9ecef;
-            border-radius: 12px;
-            padding: 40px;
-            text-align: center;
-            margin-bottom: 20px;
-            transition: all 0.3s;
-            cursor: pointer;
+        /* SQL代码块 */
+        .sql-block {
+            background: #1e1e1e;
+            padding: 12px;
+            border-radius: 8px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.85rem;
+            overflow-x: auto;
+            margin: 10px 0;
         }
 
-        .upload-zone:hover {
-            border-color: #667eea;
-            background: rgba(102,126,234,0.05);
+        .sql-block .keyword {
+            color: #569cd6;
         }
 
-        .upload-zone.dragover {
-            border-color: #667eea;
-            background: rgba(102,126,234,0.1);
+        .sql-block .string {
+            color: #ce9178;
         }
 
-        .upload-zone input {
-            display: none;
+        .sql-block .number {
+            color: #b5cea8;
         }
 
-        .upload-zone .icon {
-            font-size: 3rem;
-            margin-bottom: 15px;
+        /* 分析结果列表 */
+        .analysis-list {
+            margin: 10px 0;
         }
 
-        /* 模态框 */
+        .analysis-list li {
+            margin: 5px 0;
+            padding-left: 10px;
+        }
+
+        /* 全屏模态框 */
         .modal {
             display: none;
             position: fixed;
@@ -423,7 +483,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.5);
+            background: rgba(0,0,0,0.8);
             z-index: 1000;
             justify-content: center;
             align-items: center;
@@ -436,134 +496,215 @@
         .modal-content {
             background: white;
             border-radius: 16px;
-            padding: 30px;
-            max-width: 600px;
             width: 90%;
-            max-height: 80vh;
-            overflow-y: auto;
+            max-width: 1000px;
+            height: 80vh;
+            overflow: hidden;
         }
 
         .modal-header {
+            padding: 20px;
+            background: #f8f9fa;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .modal-body {
+            height: calc(100% - 70px);
+            padding: 20px;
         }
 
         .modal-close {
-            font-size: 1.5rem;
+            width: 35px;
+            height: 35px;
+            border: none;
+            background: #e0e0e0;
+            border-radius: 50%;
             cursor: pointer;
-            color: #6c757d;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
         }
 
         .modal-close:hover {
+            background: #e74c3c;
+            color: white;
+        }
+
+        /* 文件预览 */
+        .file-preview {
+            background: rgba(255,255,255,0.1);
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .file-preview .name {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .file-preview .remove {
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity 0.3s;
+        }
+
+        .file-preview .remove:hover {
+            opacity: 1;
             color: #e74c3c;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>📊 数据分析与报表生成系统</h1>
-            <p>智能分析 · 自动生成 · 可视化展示</p>
+    <div class="app-container">
+        <!-- 左侧对话区域 -->
+        <div class="chat-panel">
+            <div class="chat-header">
+                <h2>🤖 数据分析助手</h2>
+                <p>智能问答 · SQL生成 · 图表推荐</p>
+            </div>
+
+            <div class="chat-messages" id="chatMessages">
+                <div class="message bot">
+                    <div>👋 你好！我是数据分析助手，可以帮助你：</div>
+                    <ul style="margin: 10px 0 0 20px;">
+                        <li>📊 分析销售数据</li>
+                        <li>📝 生成SQL查询语句</li>
+                        <li>📈 生成可视化图表</li>
+                        <li>📄 解读文档内容</li>
+                    </ul>
+                    <div style="margin-top: 10px;">请上传文件或输入你的问题~</div>
+                    <div class="timestamp">系统 · 刚刚</div>
+                </div>
+            </div>
+
+            <div class="chat-input-area">
+                <div class="file-upload-row">
+                    <label class="file-upload-btn" id="fileUploadLabel">
+                        📎 上传文件
+                        <input type="file" id="fileInput" accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt" onchange="handleFileSelect(this)">
+                    </label>
+                    <div id="filePreview" style="display: none; flex: 1;" class="file-preview">
+                        <span id="fileName"></span>
+                        <span class="remove" onclick="clearFile()">✕</span>
+                    </div>
+                </div>
+                <div class="chat-input-wrapper">
+                    <input type="text" class="chat-input" id="chatInput" placeholder="输入你的数据分析问题..." onkeypress="handleKeyPress(event)">
+                    <button class="send-btn" onclick="sendMessage()">➤</button>
+                </div>
+            </div>
         </div>
 
-        <div class="main-card">
-            <div class="tabs">
-                <div class="tab active" data-tab="query">📈 数据查询</div>
-                <div class="tab" data-tab="charts">📊 图表展示</div>
-                <div class="tab" data-tab="report">📝 报表预览</div>
-                <div class="tab" data-tab="docs">📁 文档分析</div>
-            </div>
-
-            <!-- 数据查询页面 -->
-            <div class="tab-content active" id="query">
-                <div class="query-section">
-                    <div class="query-input-group">
-                        <input type="text" class="query-input" id="queryInput" 
-                               placeholder="输入您的数据分析查询，例如：查询2024年各地区销售总额">
-                        <button class="btn btn-primary" onclick="executeQuery()">🔍 执行分析</button>
-                    </div>
-
-                    <div class="quick-queries">
-                        <span style="color: #6c757d; margin-right: 10px;">快速查询:</span>
-                        <span class="quick-query" onclick="quickQuery('查询各地区销售总额')">各地区销售</span>
-                        <span class="quick-query" onclick="quickQuery('查询月度销售趋势')">月度趋势</span>
-                        <span class="quick-query" onclick="quickQuery('查询产品类别销售占比')">产品占比</span>
-                        <span class="quick-query" onclick="quickQuery('查询客户购买行为分析')">客户分析</span>
-                    </div>
-                </div>
-
-                <div id="queryResult">
-                    <div class="empty-state">
-                        <div class="icon">🔍</div>
-                        <p>输入查询条件，开始数据分析</p>
-                    </div>
+        <!-- 右侧图表区域 -->
+        <div class="chart-panel">
+            <div class="chart-header">
+                <h2>📈 数据可视化</h2>
+                <div class="chart-actions">
+                    <button class="chart-btn" onclick="refreshCharts()">🔄 刷新</button>
+                    <button class="chart-btn" onclick="exportAllCharts()">📥 导出全部</button>
                 </div>
             </div>
 
-            <!-- 图表展示页面 -->
-            <div class="tab-content" id="charts">
-                <div class="chart-type-selector">
-                    <div class="chart-type-btn active" data-type="bar" onclick="switchChartType('bar')">
-                        <div class="icon">📊</div>
-                        <div class="label">柱状图</div>
-                    </div>
-                    <div class="chart-type-btn" data-type="line" onclick="switchChartType('line')">
-                        <div class="icon">📈</div>
-                        <div class="label">折线图</div>
-                    </div>
-                    <div class="chart-type-btn" data-type="pie" onclick="switchChartType('pie')">
-                        <div class="icon">🥧</div>
-                        <div class="label">饼图</div>
-                    </div>
-                    <div class="chart-type-btn" data-type="scatter" onclick="switchChartType('scatter')">
-                        <div class="icon">⚪</div>
-                        <div class="label">散点图</div>
-                    </div>
-                    <div class="chart-type-btn" data-type="area" onclick="switchChartType('area')">
-                        <div class="icon">🏔️</div>
-                        <div class="label">面积图</div>
-                    </div>
+            <div class="chart-type-bar">
+                <div class="chart-type-btn active" data-type="bar" onclick="switchChartType('bar')">
+                    📊 柱状图
                 </div>
+                <div class="chart-type-btn" data-type="line" onclick="switchChartType('line')">
+                    📈 折线图
+                </div>
+                <div class="chart-type-btn" data-type="pie" onclick="switchChartType('pie')">
+                    🥧 饼图
+                </div>
+                <div class="chart-type-btn" data-type="scatter" onclick="switchChartType('scatter')">
+                    ⚪ 散点图
+                </div>
+                <div class="chart-type-btn" data-type="area" onclick="switchChartType('area')">
+                    🏔️ 面积图
+                </div>
+                <div class="chart-type-btn" data-type="radar" onclick="switchChartType('radar')">
+                    🕸️ 雷达图
+                </div>
+            </div>
 
-                <div class="charts-grid" id="chartsContainer">
+            <div class="chart-container-wrapper">
+                <div class="charts-grid" id="chartsGrid">
+                    <!-- 主图表 -->
                     <div class="chart-card">
-                        <div class="chart-header">
-                            <div class="chart-title">📊 数据可视化图表</div>
-                            <div class="chart-actions">
-                                <button class="chart-btn" onclick="exportChart('mainChart')">📥 导出</button>
-                                <button class="chart-btn" onclick="fullscreenChart('mainChart')">🔳 全屏</button>
+                        <div class="chart-card-header">
+                            <div class="chart-card-title">
+                                <span>📊</span>
+                                <span id="mainChartTitle">地区销售对比</span>
+                            </div>
+                            <div class="chart-card-actions">
+                                <button class="mini-btn" onclick="expandChart('mainChart')" title="全屏">⛶</button>
+                                <button class="mini-btn" onclick="exportChart('mainChart')" title="导出">📥</button>
                             </div>
                         </div>
-                        <div id="mainChart" class="chart-container"></div>
+                        <div class="chart-card-body">
+                            <div id="mainChart" style="width: 100%; height: 100%;"></div>
+                        </div>
                     </div>
-                </div>
-            </div>
 
-            <!-- 报表预览页面 -->
-            <div class="tab-content" id="report">
-                <div id="reportContent">
-                    <div class="empty-state">
-                        <div class="icon">📝</div>
-                        <p>执行查询后将自动生成报表</p>
+                    <!-- 副图表 -->
+                    <div class="chart-card">
+                        <div class="chart-card-header">
+                            <div class="chart-card-title">
+                                <span>📈</span>
+                                <span id="secondChartTitle">销售趋势</span>
+                            </div>
+                            <div class="chart-card-actions">
+                                <button class="mini-btn" onclick="expandChart('secondChart')" title="全屏">⛶</button>
+                                <button class="mini-btn" onclick="exportChart('secondChart')" title="导出">📥</button>
+                            </div>
+                        </div>
+                        <div class="chart-card-body">
+                            <div id="secondChart" style="width: 100%; height: 100%;"></div>
+                        </div>
                     </div>
-                </div>
-            </div>
 
-            <!-- 文档分析页面 -->
-            <div class="tab-content" id="docs">
-                <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
-                    <div class="icon">📄</div>
-                    <p>点击或拖拽文件到此处上传</p>
-                    <p style="color: #6c757d; font-size: 0.9rem;">支持 PDF、Word、Excel、CSV、TXT 格式</p>
-                    <input type="file" id="fileInput" accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt" onchange="handleFileUpload(event)">
-                </div>
+                    <!-- 第三个图表 -->
+                    <div class="chart-card">
+                        <div class="chart-card-header">
+                            <div class="chart-card-title">
+                                <span>🥧</span>
+                                <span id="thirdChartTitle">销售占比</span>
+                            </div>
+                            <div class="chart-card-actions">
+                                <button class="mini-btn" onclick="expandChart('thirdChart')" title="全屏">⛶</button>
+                                <button class="mini-btn" onclick="exportChart('thirdChart')" title="导出">📥</button>
+                            </div>
+                        </div>
+                        <div class="chart-card-body">
+                            <div id="thirdChart" style="width: 100%; height: 100%;"></div>
+                        </div>
+                    </div>
 
-                <div id="documentResult">
-                    <div class="empty-state">
-                        <div class="icon">📑</div>
-                        <p>上传文档后，我可以帮您分析和回答问题</p>
+                    <!-- 第四个图表 -->
+                    <div class="chart-card">
+                        <div class="chart-card-header">
+                            <div class="chart-card-title">
+                                <span>⚪</span>
+                                <span id="fourthChartTitle">数据分布</span>
+                            </div>
+                            <div class="chart-card-actions">
+                                <button class="mini-btn" onclick="expandChart('fourthChart')" title="全屏">⛶</button>
+                                <button class="mini-btn" onclick="exportChart('fourthChart')" title="导出">📥</button>
+                            </div>
+                        </div>
+                        <div class="chart-card-body">
+                            <div id="fourthChart" style="width: 100%; height: 100%;"></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -574,195 +715,192 @@
     <div class="modal" id="fullscreenModal">
         <div class="modal-content">
             <div class="modal-header">
-                <div class="chart-title">📊 图表详情</div>
-                <span class="modal-close" onclick="closeFullscreen()">&times;</span>
+                <span id="modalTitle">图表详情</span>
+                <button class="modal-close" onclick="closeFullscreen()">✕</button>
             </div>
-            <div id="fullscreenChart" style="width: 100%; height: 500px;"></div>
+            <div class="modal-body">
+                <div id="fullscreenChart" style="width: 100%; height: 100%;"></div>
+            </div>
         </div>
     </div>
 
     <script>
         // 全局变量
-        let currentCharts = {};
+        let charts = {};
         let currentChartType = 'bar';
-        let currentData = null;
-        let currentEchartsOption = null;
+        let currentFile = null;
+        let chartOptions = {};
 
-        // 标签页切换
-        document.querySelectorAll('.tab').forEach(tab => {
-            tab.addEventListener('click', function() {
-                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-                
-                this.classList.add('active');
-                document.getElementById(this.dataset.tab).classList.add('active');
+        // 示例数据
+        const sampleData = {
+            regions: ['华东', '华北', '华南', '华中', '东北', '西南', '西北'],
+            sales: [859, 754, 381, 350, 328, 214, 125],
+            months: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
+            trend: [120, 145, 180, 165, 190, 220, 250, 280, 260, 310, 350, 380],
+            categories: ['电子产品', '服装', '食品', '家居', '图书'],
+            categorySales: [450, 320, 280, 180, 120]
+        };
+
+        // 初始化图表
+        function initCharts() {
+            // 主图表 - 柱状图
+            charts.mainChart = echarts.init(document.getElementById('mainChart'));
+            chartOptions.mainChart = generateBarOption(sampleData.regions, sampleData.sales, '地区销售对比');
+            charts.mainChart.setOption(chartOptions.mainChart);
+
+            // 第二图表 - 折线图
+            charts.secondChart = echarts.init(document.getElementById('secondChart'));
+            chartOptions.secondChart = generateLineOption(sampleData.months, sampleData.trend, '月度销售趋势');
+            charts.secondChart.setOption(chartOptions.secondChart);
+
+            // 第三图表 - 饼图
+            charts.thirdChart = echarts.init(document.getElementById('thirdChart'));
+            chartOptions.thirdChart = generatePieOption(sampleData.categories, sampleData.categorySales, '产品类别占比');
+            charts.thirdChart.setOption(chartOptions.thirdChart);
+
+            // 第四图表 - 散点图
+            charts.fourthChart = echarts.init(document.getElementById('fourthChart'));
+            chartOptions.fourthChart = generateScatterOption('销售与利润关系');
+            charts.fourthChart.setOption(chartOptions.fourthChart);
+
+            // 监听窗口变化
+            window.addEventListener('resize', () => {
+                Object.values(charts).forEach(chart => chart.resize());
             });
-        });
-
-        // 快速查询
-        function quickQuery(query) {
-            document.getElementById('queryInput').value = query;
-            executeQuery();
         }
 
-        // 执行查询
-        async function executeQuery() {
-            const query = document.getElementById('queryInput').value.trim();
-            if (!query) {
-                alert('请输入查询内容');
-                return;
-            }
-
-            showLoading('queryResult');
-
-            try {
-                // 模拟调用Agent API
-                const response = await fetch('/api/query', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ query })
-                });
-
-                const result = await response.json();
-                currentData = result;
-
-                // 更新查询结果
-                renderQueryResult(result);
-
-                // 更新图表
-                if (result.charts && result.charts.length > 0) {
-                    renderCharts(result.charts);
-                }
-
-                // 更新报表
-                if (result.report) {
-                    renderReport(result.report);
-                }
-
-                // 切换到图表页面
-                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-                document.querySelector('[data-tab="charts"]').classList.add('active');
-                document.getElementById('charts').classList.add('active');
-
-            } catch (error) {
-                console.error('Query error:', error);
-                // 使用模拟数据进行演示
-                renderMockData();
-            }
-        }
-
-        // 渲染模拟数据（用于演示）
-        function renderMockData() {
-            const mockResult = {
-                sql: "SELECT region, SUM(sales_amount) as total FROM sales_table WHERE date >= '2024-01-01' GROUP BY region ORDER BY total DESC",
-                status: 'success',
-                charts: [{
+        // 生成柱状图配置
+        function generateBarOption(xData, yData, title) {
+            return {
+                title: { text: title, left: 'center', textStyle: { fontSize: 14, fontWeight: 'bold' } },
+                tooltip: { trigger: 'axis' },
+                grid: { left: '10%', right: '5%', bottom: '15%', top: '20%' },
+                xAxis: { type: 'category', data: xData, axisLabel: { rotate: 0 } },
+                yAxis: { type: 'value', name: '销售额(万)' },
+                series: [{
                     type: 'bar',
-                    title: '2024年各地区销售总额',
-                    echarts_option: {
-                        title: { text: '2024年各地区销售总额对比', left: 'center' },
-                        tooltip: { trigger: 'axis' },
-                        legend: { data: ['销售额'], top: 30 },
-                        xAxis: { type: 'category', data: ['华东', '华北', '华南', '华中', '东北', '西南', '西北'] },
-                        yAxis: { type: 'value', name: '销售额(万元)' },
-                        series: [{
-                            name: '销售额',
-                            type: 'bar',
-                            data: [859, 754, 381, 350, 328, 214, 125],
-                            itemStyle: {
-                                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                                    { offset: 0, color: '#667eea' },
-                                    { offset: 1, color: '#764ba2' }
-                                ])
-                            }
-                        }]
-                    }
-                }],
-                report: {
-                    format: 'markdown',
-                    content: `# 2024年各地区销售总额分析报告
-
-## 执行摘要
-本报告分析了2024年各地区的销售总额表现。
-
-## 数据概览
-- **总销售额**: 3,011万元
-- **覆盖地区**: 7个
-- **数据周期**: 2024年全年
-
-## 地区排名
-
-| 排名 | 地区 | 销售额 | 占比 |
-|------|------|--------|------|
-| 1 | 华东 | 859万 | 28.5% |
-| 2 | 华北 | 754万 | 25.0% |
-| 3 | 华南 | 381万 | 12.7% |
-
-## 关键洞察
-1. 华东地区表现最佳，占总销售额的28.5%
-2. 西北地区有较大增长潜力
-3. 前两名地区贡献了超过50%的销售额`
-                }
+                    data: yData,
+                    itemStyle: {
+                        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                            { offset: 0, color: '#667eea' },
+                            { offset: 1, color: '#764ba2' }
+                        ]),
+                        borderRadius: [4, 4, 0, 0]
+                    },
+                    label: { show: true, position: 'top', formatter: '{c}' }
+                }]
             };
-
-            currentData = mockResult;
-            renderQueryResult(mockResult);
-            renderCharts(mockResult.charts);
-            renderReport(mockResult.report);
         }
 
-        // 渲染查询结果
-        function renderQueryResult(result) {
-            const container = document.getElementById('queryResult');
-            
-            let sqlStatus = result.status || 'success';
-            let sqlText = result.sql || result.query_sql || 'SELECT * FROM table_name';
-
-            container.innerHTML = `
-                <div class="sql-result">
-                    <span class="sql-status ${sqlStatus}">${sqlStatus === 'success' ? '✅ 成功' : '❌ 失败'}</span>
-                    <pre>${sqlText}</pre>
-                </div>
-                ${result.explanation ? `<p style="margin-top: 15px; color: #6c757d;">${result.explanation}</p>` : ''}
-            `;
+        // 生成折线图配置
+        function generateLineOption(xData, yData, title) {
+            return {
+                title: { text: title, left: 'center', textStyle: { fontSize: 14, fontWeight: 'bold' } },
+                tooltip: { trigger: 'axis' },
+                grid: { left: '10%', right: '5%', bottom: '15%', top: '20%' },
+                xAxis: { type: 'category', data: xData, boundaryGap: false },
+                yAxis: { type: 'value', name: '销售额(万)' },
+                series: [{
+                    type: 'line',
+                    data: yData,
+                    smooth: true,
+                    areaStyle: {
+                        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                            { offset: 0, color: 'rgba(102,126,234,0.5)' },
+                            { offset: 1, color: 'rgba(102,126,234,0.1)' }
+                        ])
+                    },
+                    itemStyle: { color: '#667eea' },
+                    label: { show: true, position: 'top' }
+                }]
+            };
         }
 
-        // 渲染图表
-        function renderCharts(charts) {
-            const container = document.getElementById('chartsContainer');
-            container.innerHTML = '';
+        // 生成饼图配置
+        function generatePieOption(names, values, title) {
+            const pieData = names.map((name, i) => ({ name, value: values[i] }));
+            return {
+                title: { text: title, left: 'center', textStyle: { fontSize: 14, fontWeight: 'bold' } },
+                tooltip: { trigger: 'item', formatter: '{b}: {c}万 ({d}%)' },
+                legend: { orient: 'vertical', left: 'left', top: 'middle' },
+                series: [{
+                    type: 'pie',
+                    radius: ['40%', '70%'],
+                    center: ['60%', '50%'],
+                    data: pieData,
+                    emphasis: {
+                        itemStyle: { shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0,0,0,0.5)' }
+                    },
+                    label: { formatter: '{b}: {d}%' }
+                }]
+            };
+        }
 
-            charts.forEach((chart, index) => {
-                const chartId = `chart_${index}`;
-                currentCharts[chartId] = echarts.init(document.getElementById(chartId));
+        // 生成散点图配置
+        function generateScatterOption(title) {
+            const scatterData = sampleData.sales.map((v, i) => [
+                v, 
+                v * (0.6 + Math.random() * 0.4),
+                v * (0.8 + Math.random() * 0.4)
+            ]);
+            return {
+                title: { text: title, left: 'center', textStyle: { fontSize: 14, fontWeight: 'bold' } },
+                tooltip: { trigger: 'item' },
+                grid: { left: '10%', right: '5%', bottom: '15%', top: '20%' },
+                xAxis: { type: 'value', name: '销售额', splitLine: { lineStyle: { type: 'dashed' } } },
+                yAxis: { type: 'value', name: '利润', splitLine: { lineStyle: { type: 'dashed' } } },
+                series: [{
+                    type: 'scatter',
+                    data: scatterData,
+                    symbolSize: 15,
+                    itemStyle: { color: '#764ba2', opacity: 0.7 }
+                }]
+            };
+        }
 
-                // 保存原始配置
-                if (index === 0) {
-                    currentEchartsOption = chart.echarts_option;
-                }
+        // 生成面积图配置
+        function generateAreaOption(xData, yData, title) {
+            return {
+                title: { text: title, left: 'center', textStyle: { fontSize: 14, fontWeight: 'bold' } },
+                tooltip: { trigger: 'axis' },
+                grid: { left: '10%', right: '5%', bottom: '15%', top: '20%' },
+                xAxis: { type: 'category', data: xData, boundaryGap: false },
+                yAxis: { type: 'value', name: '数值' },
+                series: [{
+                    type: 'line',
+                    data: yData,
+                    smooth: true,
+                    areaStyle: {},
+                    itemStyle: { color: '#73A0FA' }
+                }]
+            };
+        }
 
-                currentCharts[chartId].setOption(chart.echarts_option);
-
-                container.innerHTML += `
-                    <div class="chart-card">
-                        <div class="chart-header">
-                            <div class="chart-title">${chart.title || '图表 ' + (index + 1)}</div>
-                            <div class="chart-actions">
-                                <button class="chart-btn" onclick="exportChart('${chartId}')">📥 导出</button>
-                                <button class="chart-btn" onclick="fullscreenChart('${chartId}')">🔳 全屏</button>
-                            </div>
-                        </div>
-                        <div id="${chartId}" class="chart-container"></div>
-                    </div>
-                `;
-
-                // 重新初始化图表
-                setTimeout(() => {
-                    currentCharts[chartId] = echarts.init(document.getElementById(chartId));
-                    currentCharts[chartId].setOption(chart.echarts_option);
-                }, 100);
-            });
+        // 生成雷达图配置
+        function generateRadarOption(title) {
+            return {
+                title: { text: title, left: 'center', textStyle: { fontSize: 14, fontWeight: 'bold' } },
+                tooltip: {},
+                radar: {
+                    indicator: [
+                        { name: '销售', max: 1000 },
+                        { name: '利润', max: 500 },
+                        { name: '增长', max: 100 },
+                        { name: '客户', max: 1000 },
+                        { name: '复购', max: 100 }
+                    ],
+                    center: ['50%', '55%']
+                },
+                series: [{
+                    type: 'radar',
+                    data: [{
+                        value: [850, 420, 85, 680, 72],
+                        name: '业务指标',
+                        areaStyle: { color: 'rgba(102,126,234,0.5)' },
+                        itemStyle: { color: '#667eea' }
+                    }]
+                }]
+            };
         }
 
         // 切换图表类型
@@ -774,278 +912,302 @@
                 btn.classList.toggle('active', btn.dataset.type === type);
             });
 
-            // 更新主图表
-            if (currentEchartsOption && currentCharts['mainChart']) {
-                const newOption = JSON.parse(JSON.stringify(currentEchartsOption));
+            // 更新所有图表
+            if (type === 'bar') {
+                charts.mainChart.setOption(generateBarOption(sampleData.regions, sampleData.sales, '地区销售对比'));
+                charts.secondChart.setOption(generateLineOption(sampleData.months, sampleData.trend, '月度销售趋势'));
+                charts.thirdChart.setOption(generatePieOption(sampleData.categories, sampleData.categorySales, '产品类别占比'));
+                charts.fourthChart.setOption(generateScatterOption('销售与利润关系'));
+            } else if (type === 'line') {
+                charts.mainChart.setOption(generateLineOption(sampleData.regions, sampleData.sales, '地区销售趋势'));
+                charts.secondChart.setOption(generateLineOption(sampleData.months, sampleData.trend, '月度销售趋势'));
+                charts.thirdChart.setOption(generateLineOption(sampleData.categories, sampleData.categorySales, '产品销售趋势'));
+                charts.fourthChart.setOption(generateLineOption(sampleData.regions, sampleData.sales.map(v => v * 0.7), '利润趋势'));
+            } else if (type === 'pie') {
+                charts.mainChart.setOption(generatePieOption(sampleData.regions, sampleData.sales, '地区销售占比'));
+                charts.secondChart.setOption(generatePieOption(sampleData.months.slice(0, 6), sampleData.trend.slice(0, 6), '上半年销售占比'));
+                charts.thirdChart.setOption(generatePieOption(sampleData.categories, sampleData.categorySales, '产品类别占比'));
+                charts.fourthChart.setOption(generatePieOption(sampleData.regions.slice(0, 5), sampleData.sales.slice(0, 5), 'TOP5地区占比'));
+            } else if (type === 'scatter') {
+                charts.mainChart.setOption(generateScatterOption('地区销售与利润关系'));
+                charts.secondChart.setOption(generateScatterOption('月度销售与增长关系'));
+                charts.thirdChart.setOption(generateScatterOption('产品销售与利润关系'));
+                charts.fourthChart.setOption(generateScatterOption('客户购买与价值关系'));
+            } else if (type === 'area') {
+                charts.mainChart.setOption(generateAreaOption(sampleData.regions, sampleData.sales, '地区销售面积图'));
+                charts.secondChart.setOption(generateAreaOption(sampleData.months, sampleData.trend, '月度销售面积图'));
+                charts.thirdChart.setOption(generateAreaOption(sampleData.categories, sampleData.categorySales, '产品销售面积图'));
+                charts.fourthChart.setOption(generateAreaOption(sampleData.regions, sampleData.sales.map(v => v * 0.8), '利润面积图'));
+            } else if (type === 'radar') {
+                charts.mainChart.setOption(generateRadarOption('综合业务指标'));
+                charts.secondChart.setOption(generateRadarOption('华东地区指标'));
+                charts.thirdChart.setOption(generateRadarOption('华北地区指标'));
+                charts.fourthChart.setOption(generateRadarOption('华南地区指标'));
+            }
+        }
+
+        // 发送消息
+        async function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            
+            if (!message && !currentFile) {
+                return;
+            }
+
+            // 添加用户消息
+            addMessage('user', message || `📎 上传了文件: ${currentFile.name}`);
+            
+            input.value = '';
+
+            // 添加加载指示器
+            const loadingId = addLoadingMessage();
+
+            // 模拟AI响应
+            setTimeout(() => {
+                removeLoadingMessage(loadingId);
                 
-                if (newOption.series && newOption.series[0]) {
-                    newOption.series[0].type = type;
-                    
-                    // 饼图特殊处理
-                    if (type === 'pie') {
-                        const data = newOption.series[0].data;
-                        newOption.series[0] = {
-                            type: 'pie',
-                            radius: '55%',
-                            data: data.map((value, i) => ({
-                                value: value,
-                                name: newOption.xAxis?.data?.[i] || `项目${i + 1}`
-                            })),
-                            emphasis: {
-                                itemStyle: {
-                                    shadowBlur: 10,
-                                    shadowOffsetX: 0,
-                                    shadowColor: 'rgba(0, 0, 0, 0.5)'
-                                }
-                            }
-                        };
-                        delete newOption.xAxis;
-                        delete newOption.yAxis;
-                    }
-                    
-                    // 面积图特殊处理
-                    if (type === 'area') {
-                        newOption.series[0].areaStyle = {};
-                        newOption.series[0].smooth = true;
-                    }
+                // 根据输入生成响应
+                const response = generateAIResponse(message);
+                addMessage('bot', response);
+                
+                // 更新图表
+                if (response.includes('柱状图')) {
+                    switchChartType('bar');
+                } else if (response.includes('折线图') || response.includes('趋势')) {
+                    switchChartType('line');
+                } else if (response.includes('饼图') || response.includes('占比')) {
+                    switchChartType('pie');
                 }
+            }, 1500);
+        }
 
-                currentCharts['mainChart'].setOption(newOption, true);
+        // 生成AI响应
+        function generateAIResponse(message) {
+            const lowerMsg = message.toLowerCase();
+            
+            if (lowerMsg.includes('销售') || lowerMsg.includes('地区')) {
+                return `根据您的需求，我为您生成了以下分析：
+
+**📊 地区销售分析**
+- 华东地区表现最佳，销售额 859 万
+- 华北地区紧随其后，销售额 754 万
+- 西北地区有较大增长空间
+
+**SQL查询已生成：**
+\`\`\`sql
+SELECT region, SUM(sales_amount) as total 
+FROM sales_table 
+WHERE date >= '2024-01-01' 
+GROUP BY region 
+ORDER BY total DESC
+\`\`\`
+
+右侧图表已更新为柱状图展示。`;
+            } else if (lowerMsg.includes('趋势') || lowerMsg.includes('月度')) {
+                return `为您分析了销售趋势：
+
+**📈 月度趋势发现**
+- 下半年销售明显高于上半年
+- 10-12月为销售旺季
+- 环比增长率约 15%
+
+已切换为折线图展示趋势变化。`;
+            } else if (lowerMsg.includes('占比') || lowerMsg.includes('分类')) {
+                return `产品类别占比分析：
+
+**🥧 类别销售占比**
+- 电子产品占 35%（最高）
+- 服装类占 25%
+- 食品类占 22%
+
+已切换为饼图展示占比分布。`;
+            } else if (lowerMsg.includes('客户') || lowerMsg.includes('用户')) {
+                return `客户分析结果：
+
+**👥 客户洞察**
+- 高价值客户占比 20%，贡献 65% 营收
+- 客户复购率平均为 32%
+- 华东地区客户活跃度最高
+
+已更新相关性散点图。`;
+            } else {
+                return `我已经理解您的需求！
+
+**已为您准备：**
+- 📊 柱状图 - 地区销售对比
+- 📈 折线图 - 销售趋势
+- 🥧 饼图 - 产品占比
+- ⚪ 散点图 - 数据分布
+
+您可以点击上方的图表类型按钮切换不同视图，或上传文件进行更深入的分析。`;
             }
         }
 
-        // 导出图表
-        function exportChart(chartId) {
-            const chart = currentCharts[chartId];
-            if (chart) {
-                const url = chart.getDataURL({
-                    type: 'png',
-                    pixelRatio: 2,
-                    backgroundColor: '#fff'
-                });
+        // 添加消息到聊天区域
+        function addMessage(type, content) {
+            const container = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            
+            const time = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+            
+            messageDiv.innerHTML = `
+                <div>${content.replace(/\n/g, '<br>').replace(/`([^`]+)`/g, '<code>$1</code>').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')}</div>
+                <div class="timestamp">${type === 'user' ? '你' : '助手'} · ${time}</div>
+            `;
+            
+            container.appendChild(messageDiv);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // 添加加载消息
+        function addLoadingMessage() {
+            const container = document.getElementById('chatMessages');
+            const id = 'loading-' + Date.now();
+            
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'message bot';
+            loadingDiv.id = id;
+            loadingDiv.innerHTML = `
+                <div class="typing-indicator">
+                    <span></span><span></span><span></span>
+                </div>
+            `;
+            
+            container.appendChild(loadingDiv);
+            container.scrollTop = container.scrollHeight;
+            
+            return id;
+        }
+
+        // 移除加载消息
+        function removeLoadingMessage(id) {
+            const el = document.getElementById(id);
+            if (el) el.remove();
+        }
+
+        // 处理回车发送
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        // 文件选择处理
+        function handleFileSelect(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            currentFile = file;
+            document.getElementById('fileName').textContent = file.name;
+            document.getElementById('filePreview').style.display = 'flex';
+            
+            // 显示上传消息
+            addMessage('user', `📎 上传了文件: ${file.name}`);
+            
+            // 模拟分析
+            const loadingId = addLoadingMessage();
+            
+            setTimeout(() => {
+                removeLoadingMessage(loadingId);
                 
-                const link = document.createElement('a');
-                link.download = 'chart.png';
-                link.href = url;
-                link.click();
-            }
+                const fileType = getFileType(file.name);
+                let response = `文件已上传成功！\n\n`;
+                response += `**📄 文件信息**\n`;
+                response += `- 文件名: ${file.name}\n`;
+                response += `- 类型: ${fileType}\n`;
+                response += `- 大小: ${(file.size / 1024).toFixed(1)} KB\n\n`;
+                response += `**🔍 分析结果**\n`;
+                response += `- 检测到 ${fileType} 格式文件\n`;
+                response += `- 数据已加载，准备生成可视化图表\n\n`;
+                response += `<div class="chart-hint">`;
+                response += `<strong>💡 提示</strong>：根据文件内容，已为您准备了销售数据分析图表。`;
+                response += `</div>`;
+                
+                addMessage('bot', response);
+                
+                // 自动切换到合适的图表
+                if (fileType === 'Excel' || fileType === 'CSV') {
+                    switchChartType('bar');
+                }
+            }, 2000);
         }
 
-        // 全屏查看
-        function fullscreenChart(chartId) {
+        // 获取文件类型
+        function getFileType(filename) {
+            const ext = filename.split('.').pop().toLowerCase();
+            const types = {
+                'pdf': 'PDF文档',
+                'doc': 'Word文档',
+                'docx': 'Word文档',
+                'xls': 'Excel表格',
+                'xlsx': 'Excel表格',
+                'csv': 'CSV数据',
+                'txt': '文本文件'
+            };
+            return types[ext] || '未知格式';
+        }
+
+        // 清除文件
+        function clearFile() {
+            currentFile = null;
+            document.getElementById('fileInput').value = '';
+            document.getElementById('filePreview').style.display = 'none';
+        }
+
+        // 刷新图表
+        function refreshCharts() {
+            Object.values(charts).forEach(chart => chart.resize());
+        }
+
+        // 导出单个图表
+        function exportChart(chartId) {
+            const chart = charts[chartId];
+            if (!chart) return;
+
+            const url = chart.getDataURL({ type: 'png', pixelRatio: 2, backgroundColor: '#fff' });
+            const link = document.createElement('a');
+            link.download = `${chartId}.png`;
+            link.href = url;
+            link.click();
+        }
+
+        // 导出全部图表
+        function exportAllCharts() {
+            Object.keys(charts).forEach((chartId, index) => {
+                setTimeout(() => exportChart(chartId), index * 500);
+            });
+        }
+
+        // 全屏查看图表
+        function expandChart(chartId) {
             const modal = document.getElementById('fullscreenModal');
             const fullscreenChart = echarts.init(document.getElementById('fullscreenChart'));
             
-            const originalChart = currentCharts[chartId];
-            if (originalChart) {
-                fullscreenChart.setOption(originalChart.getOption());
-            }
+            const titles = {
+                'mainChart': '地区销售对比',
+                'secondChart': '销售趋势',
+                'thirdChart': '销售占比',
+                'fourthChart': '数据分布'
+            };
+            
+            document.getElementById('modalTitle').textContent = titles[chartId] || '图表详情';
+            
+            const originalOption = chartOptions[chartId] || charts[chartId].getOption();
+            fullscreenChart.setOption(originalOption);
             
             modal.classList.add('active');
+            
+            // 监听窗口变化
+            fullscreenChart.resize();
         }
 
         // 关闭全屏
         function closeFullscreen() {
             document.getElementById('fullscreenModal').classList.remove('active');
+            echarts.getInstanceByDom(document.getElementById('fullscreenChart'))?.dispose();
         }
-
-        // 渲染报表
-        function renderReport(report) {
-            const container = document.getElementById('reportContent');
-            
-            // 简单的Markdown渲染
-            let content = report.content || report;
-            content = content
-                .replace(/^### (.+)$/gm, '<h3>$1</h3>')
-                .replace(/^## (.+)$/gm, '<h2>$1</h2>')
-                .replace(/^# (.+)$/gm, '<h1>$1</h1>')
-                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-                .replace(/\*(.+?)\*/g, '<em>$1</em>')
-                .replace(/`(.+?)`/g, '<code>$1</code>')
-                .replace(/```(\w+)?\n([\s\S]+?)```/g, '<pre><code>$2</code></pre>')
-                .replace(/^\| (.+) \|$/gm, (match, row) => {
-                    const cells = row.split(' | ');
-                    const isHeader = cells.every(c => /^-+$/.test(c));
-                    if (isHeader) return '';
-                    const tag = 'td';
-                    return '<tr>' + cells.map(c => `<${tag}>${c.trim()}</${tag}>`).join('') + '</tr>';
-                })
-                .replace(/(<tr>.*<\/tr>)+/g, '<table>$&</table>')
-                .replace(/^- (.+)$/gm, '<li>$1</li>')
-                .replace(/(<li>.*<\/li>)+/g, '<ul>$&</ul>')
-                .replace(/\n\n/g, '</p><p>')
-                .replace(/^(.+)$/gm, (line) => {
-                    if (line.startsWith('<')) return line;
-                    return `<p>${line}</p>`;
-                });
-
-            container.innerHTML = `<div class="report-content">${content}</div>`;
-        }
-
-        // 文件上传
-        function handleFileUpload(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const formData = new FormData();
-            formData.append('file', file);
-
-            showLoading('documentResult');
-
-            // 模拟上传处理
-            setTimeout(() => {
-                document.getElementById('documentResult').innerHTML = `
-                    <div class="query-result" style="background: #f8f9fa; padding: 20px; border-radius: 12px;">
-                        <h4>📄 ${file.name}</h4>
-                        <p style="color: #6c757d; margin-top: 10px;">文件已上传，系统正在解析内容...</p>
-                        <div style="margin-top: 20px;">
-                            <p><strong>文档信息:</strong></p>
-                            <ul style="margin-left: 20px; line-height: 2;">
-                                <li>文件名: ${file.name}</li>
-                                <li>文件大小: ${(file.size / 1024).toFixed(2)} KB</li>
-                                <li>文件类型: ${file.type || '未知'}</li>
-                            </ul>
-                        </div>
-                        <div style="margin-top: 20px;">
-                            <input type="text" class="query-input" id="docQuery" 
-                                   placeholder="输入关于文档的问题，例如：文档的主要内容是什么？">
-                            <button class="btn btn-primary" style="margin-top: 10px;" 
-                                    onclick="queryDocument()">🔍 分析文档</button>
-                        </div>
-                    </div>
-                `;
-            }, 1000);
-        }
-
-        // 文档问答
-        async function queryDocument() {
-            const query = document.getElementById('docQuery').value.trim();
-            if (!query) {
-                alert('请输入问题');
-                return;
-            }
-
-            showLoading('documentResult');
-
-            // 模拟AI回答
-            setTimeout(() => {
-                document.getElementById('documentResult').innerHTML = `
-                    <div class="report-content">
-                        <h3>📖 文档分析结果</h3>
-                        <p><strong>您的问题:</strong> ${query}</p>
-                        <hr style="margin: 20px 0; border: none; border-top: 1px solid #e9ecef;">
-                        <h4>分析回答:</h4>
-                        <p>根据文档内容分析，该文档主要包含数据分析和报表相关的内容。文档涵盖了销售数据的各个方面，包括地区销售统计、产品类别分析以及客户购买行为研究。</p>
-                        <h4 style="margin-top: 20px;">关键信息提取:</h4>
-                        <ul style="margin-left: 20px; line-height: 2;">
-                            <li>数据覆盖时间范围: 2024年全年</li>
-                            <li>涉及地区: 华东、华北、华南、华中、东北、西南、西北</li>
-                            <li>主要分析维度: 地区、产品类别、客户群体</li>
-                            <li>关键指标: 销售额、销售量、同比增长率</li>
-                        </ul>
-                    </div>
-                `;
-            }, 1500);
-        }
-
-        // 拖拽上传
-        const uploadZone = document.getElementById('uploadZone');
-        
-        uploadZone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            uploadZone.classList.add('dragover');
-        });
-
-        uploadZone.addEventListener('dragleave', () => {
-            uploadZone.classList.remove('dragover');
-        });
-
-        uploadZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            uploadZone.classList.remove('dragover');
-            
-            const file = e.dataTransfer.files[0];
-            if (file) {
-                document.getElementById('fileInput').files = e.dataTransfer.files;
-                handleFileUpload({ target: { files: [file] } });
-            }
-        });
-
-        // 显示加载状态
-        function showLoading(containerId) {
-            document.getElementById(containerId).innerHTML = `
-                <div class="loading">
-                    <div class="spinner"></div>
-                </div>
-            `;
-        }
-
-        // 窗口大小变化时重绘图表
-        window.addEventListener('resize', () => {
-            Object.values(currentCharts).forEach(chart => {
-                if (chart && chart.resize) {
-                    chart.resize();
-                }
-            });
-        });
-
-        // 初始化 - 加载示例图表
-        document.addEventListener('DOMContentLoaded', () => {
-            // 初始化主图表
-            const mainChart = echarts.init(document.getElementById('mainChart'));
-            currentCharts['mainChart'] = mainChart;
-
-            const option = {
-                title: {
-                    text: '2024年各地区销售总额对比',
-                    left: 'center',
-                    textStyle: { fontSize: 18, fontWeight: 'bold' }
-                },
-                tooltip: {
-                    trigger: 'axis',
-                    axisPointer: { type: 'shadow' },
-                    formatter: '{b}<br/>销售额: ¥{c}万元'
-                },
-                grid: {
-                    left: '3%',
-                    right: '4%',
-                    bottom: '10%',
-                    top: '15%',
-                    containLabel: true
-                },
-                xAxis: {
-                    type: 'category',
-                    data: ['华东', '华北', '华南', '华中', '东北', '西南', '西北'],
-                    axisLabel: { fontSize: 12 },
-                    axisLine: { lineStyle: { color: '#999' } }
-                },
-                yAxis: {
-                    type: 'value',
-                    name: '销售额(万元)',
-                    axisLabel: { fontSize: 12 }
-                },
-                series: [{
-                    name: '销售额',
-                    type: 'bar',
-                    data: [859, 754, 381, 350, 328, 214, 125],
-                    itemStyle: {
-                        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                            { offset: 0, color: '#667eea' },
-                            { offset: 1, color: '#764ba2' }
-                        ]),
-                        borderRadius: [4, 4, 0, 0]
-                    },
-                    label: {
-                        show: true,
-                        position: 'top',
-                        formatter: '{c}'
-                    }
-                }]
-            };
-
-            mainChart.setOption(option);
-            currentEchartsOption = option;
-        });
 
         // 点击模态框外部关闭
         document.getElementById('fullscreenModal').addEventListener('click', (e) => {
@@ -1053,6 +1215,9 @@
                 closeFullscreen();
             }
         });
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', initCharts);
     </script>
 </body>
 </html>
