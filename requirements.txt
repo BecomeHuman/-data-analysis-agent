@@ -1,0 +1,27 @@
+# 数据分析报表系统依赖
+# Python >= 3.12
+
+# 核心框架
+pandas>=2.2.0
+SQLAlchemy>=2.0.0
+
+# Web服务
+fastapi>=0.121.0
+uvicorn>=0.38.0
+
+# LLM集成
+coze-coding-dev-sdk>=0.5.0
+
+# 文档解析
+pypdf>=6.4.0
+docx2python>=3.5.0
+openpyxl>=3.1.0
+python-pptx>=1.0.0
+
+# 数据库
+psycopg2-binary>=2.9.0
+
+# 工具库
+python-dotenv>=1.2.0
+bcrypt>=4.0.0
+chardet>=5.2.0
