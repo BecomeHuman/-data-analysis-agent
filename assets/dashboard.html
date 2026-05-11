@@ -1,0 +1,1058 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据分析与报表系统</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* 头部 */
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+
+        /* 主卡片 */
+        .main-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        /* 标签栏 */
+        .tabs {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 18px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            border-bottom: 3px solid transparent;
+            font-weight: 500;
+            color: #6c757d;
+        }
+
+        .tab:hover {
+            background: #e9ecef;
+        }
+
+        .tab.active {
+            background: white;
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 30px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* 查询区域 */
+        .query-section {
+            margin-bottom: 30px;
+        }
+
+        .query-input-group {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .query-input {
+            flex: 1;
+            padding: 15px 20px;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+
+        .query-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 4px rgba(102,126,234,0.1);
+        }
+
+        .btn {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102,126,234,0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        /* 快速查询 */
+        .quick-queries {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .quick-query {
+            padding: 8px 16px;
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+        }
+
+        .quick-query:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        /* 图表区域 */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 30px;
+            margin-top: 30px;
+        }
+
+        .chart-card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .chart-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .chart-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .chart-btn {
+            padding: 6px 12px;
+            border: 1px solid #e9ecef;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.3s;
+        }
+
+        .chart-btn:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .chart-container {
+            width: 100%;
+            height: 400px;
+        }
+
+        /* 图表类型选择器 */
+        .chart-type-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 12px;
+        }
+
+        .chart-type-btn {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            background: white;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .chart-type-btn:hover {
+            border-color: #667eea;
+        }
+
+        .chart-type-btn.active {
+            border-color: #667eea;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .chart-type-btn .icon {
+            font-size: 1.5rem;
+            margin-bottom: 5px;
+        }
+
+        .chart-type-btn .label {
+            font-size: 0.85rem;
+        }
+
+        /* 报表区域 */
+        .report-content {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 25px;
+            line-height: 1.8;
+        }
+
+        .report-content h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+
+        .report-content h3 {
+            color: #34495e;
+            margin: 20px 0 10px 0;
+        }
+
+        .report-content pre {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+
+        .report-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+
+        .report-content th, .report-content td {
+            padding: 12px;
+            text-align: left;
+            border: 1px solid #e9ecef;
+        }
+
+        .report-content th {
+            background: #667eea;
+            color: white;
+        }
+
+        .report-content tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+
+        /* SQL结果 */
+        .sql-result {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 20px;
+        }
+
+        .sql-result pre {
+            margin: 0;
+            white-space: pre-wrap;
+        }
+
+        .sql-status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            margin-bottom: 15px;
+        }
+
+        .sql-status.success {
+            background: #27ae60;
+            color: white;
+        }
+
+        .sql-status.error {
+            background: #e74c3c;
+            color: white;
+        }
+
+        /* 加载状态 */
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 60px;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #e9ecef;
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* 空状态 */
+        .empty-state {
+            text-align: center;
+            padding: 60px;
+            color: #6c757d;
+        }
+
+        .empty-state .icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .query-input-group {
+                flex-direction: column;
+            }
+            
+            .header h1 {
+                font-size: 1.8rem;
+            }
+        }
+
+        /* 数据上传区域 */
+        .upload-zone {
+            border: 2px dashed #e9ecef;
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 20px;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .upload-zone:hover {
+            border-color: #667eea;
+            background: rgba(102,126,234,0.05);
+        }
+
+        .upload-zone.dragover {
+            border-color: #667eea;
+            background: rgba(102,126,234,0.1);
+        }
+
+        .upload-zone input {
+            display: none;
+        }
+
+        .upload-zone .icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+
+        /* 模态框 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-close {
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #6c757d;
+        }
+
+        .modal-close:hover {
+            color: #e74c3c;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 数据分析与报表生成系统</h1>
+            <p>智能分析 · 自动生成 · 可视化展示</p>
+        </div>
+
+        <div class="main-card">
+            <div class="tabs">
+                <div class="tab active" data-tab="query">📈 数据查询</div>
+                <div class="tab" data-tab="charts">📊 图表展示</div>
+                <div class="tab" data-tab="report">📝 报表预览</div>
+                <div class="tab" data-tab="docs">📁 文档分析</div>
+            </div>
+
+            <!-- 数据查询页面 -->
+            <div class="tab-content active" id="query">
+                <div class="query-section">
+                    <div class="query-input-group">
+                        <input type="text" class="query-input" id="queryInput" 
+                               placeholder="输入您的数据分析查询，例如：查询2024年各地区销售总额">
+                        <button class="btn btn-primary" onclick="executeQuery()">🔍 执行分析</button>
+                    </div>
+
+                    <div class="quick-queries">
+                        <span style="color: #6c757d; margin-right: 10px;">快速查询:</span>
+                        <span class="quick-query" onclick="quickQuery('查询各地区销售总额')">各地区销售</span>
+                        <span class="quick-query" onclick="quickQuery('查询月度销售趋势')">月度趋势</span>
+                        <span class="quick-query" onclick="quickQuery('查询产品类别销售占比')">产品占比</span>
+                        <span class="quick-query" onclick="quickQuery('查询客户购买行为分析')">客户分析</span>
+                    </div>
+                </div>
+
+                <div id="queryResult">
+                    <div class="empty-state">
+                        <div class="icon">🔍</div>
+                        <p>输入查询条件，开始数据分析</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 图表展示页面 -->
+            <div class="tab-content" id="charts">
+                <div class="chart-type-selector">
+                    <div class="chart-type-btn active" data-type="bar" onclick="switchChartType('bar')">
+                        <div class="icon">📊</div>
+                        <div class="label">柱状图</div>
+                    </div>
+                    <div class="chart-type-btn" data-type="line" onclick="switchChartType('line')">
+                        <div class="icon">📈</div>
+                        <div class="label">折线图</div>
+                    </div>
+                    <div class="chart-type-btn" data-type="pie" onclick="switchChartType('pie')">
+                        <div class="icon">🥧</div>
+                        <div class="label">饼图</div>
+                    </div>
+                    <div class="chart-type-btn" data-type="scatter" onclick="switchChartType('scatter')">
+                        <div class="icon">⚪</div>
+                        <div class="label">散点图</div>
+                    </div>
+                    <div class="chart-type-btn" data-type="area" onclick="switchChartType('area')">
+                        <div class="icon">🏔️</div>
+                        <div class="label">面积图</div>
+                    </div>
+                </div>
+
+                <div class="charts-grid" id="chartsContainer">
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <div class="chart-title">📊 数据可视化图表</div>
+                            <div class="chart-actions">
+                                <button class="chart-btn" onclick="exportChart('mainChart')">📥 导出</button>
+                                <button class="chart-btn" onclick="fullscreenChart('mainChart')">🔳 全屏</button>
+                            </div>
+                        </div>
+                        <div id="mainChart" class="chart-container"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 报表预览页面 -->
+            <div class="tab-content" id="report">
+                <div id="reportContent">
+                    <div class="empty-state">
+                        <div class="icon">📝</div>
+                        <p>执行查询后将自动生成报表</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 文档分析页面 -->
+            <div class="tab-content" id="docs">
+                <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+                    <div class="icon">📄</div>
+                    <p>点击或拖拽文件到此处上传</p>
+                    <p style="color: #6c757d; font-size: 0.9rem;">支持 PDF、Word、Excel、CSV、TXT 格式</p>
+                    <input type="file" id="fileInput" accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt" onchange="handleFileUpload(event)">
+                </div>
+
+                <div id="documentResult">
+                    <div class="empty-state">
+                        <div class="icon">📑</div>
+                        <p>上传文档后，我可以帮您分析和回答问题</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 全屏模态框 -->
+    <div class="modal" id="fullscreenModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="chart-title">📊 图表详情</div>
+                <span class="modal-close" onclick="closeFullscreen()">&times;</span>
+            </div>
+            <div id="fullscreenChart" style="width: 100%; height: 500px;"></div>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let currentCharts = {};
+        let currentChartType = 'bar';
+        let currentData = null;
+        let currentEchartsOption = null;
+
+        // 标签页切换
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                
+                this.classList.add('active');
+                document.getElementById(this.dataset.tab).classList.add('active');
+            });
+        });
+
+        // 快速查询
+        function quickQuery(query) {
+            document.getElementById('queryInput').value = query;
+            executeQuery();
+        }
+
+        // 执行查询
+        async function executeQuery() {
+            const query = document.getElementById('queryInput').value.trim();
+            if (!query) {
+                alert('请输入查询内容');
+                return;
+            }
+
+            showLoading('queryResult');
+
+            try {
+                // 模拟调用Agent API
+                const response = await fetch('/api/query', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query })
+                });
+
+                const result = await response.json();
+                currentData = result;
+
+                // 更新查询结果
+                renderQueryResult(result);
+
+                // 更新图表
+                if (result.charts && result.charts.length > 0) {
+                    renderCharts(result.charts);
+                }
+
+                // 更新报表
+                if (result.report) {
+                    renderReport(result.report);
+                }
+
+                // 切换到图表页面
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                document.querySelector('[data-tab="charts"]').classList.add('active');
+                document.getElementById('charts').classList.add('active');
+
+            } catch (error) {
+                console.error('Query error:', error);
+                // 使用模拟数据进行演示
+                renderMockData();
+            }
+        }
+
+        // 渲染模拟数据（用于演示）
+        function renderMockData() {
+            const mockResult = {
+                sql: "SELECT region, SUM(sales_amount) as total FROM sales_table WHERE date >= '2024-01-01' GROUP BY region ORDER BY total DESC",
+                status: 'success',
+                charts: [{
+                    type: 'bar',
+                    title: '2024年各地区销售总额',
+                    echarts_option: {
+                        title: { text: '2024年各地区销售总额对比', left: 'center' },
+                        tooltip: { trigger: 'axis' },
+                        legend: { data: ['销售额'], top: 30 },
+                        xAxis: { type: 'category', data: ['华东', '华北', '华南', '华中', '东北', '西南', '西北'] },
+                        yAxis: { type: 'value', name: '销售额(万元)' },
+                        series: [{
+                            name: '销售额',
+                            type: 'bar',
+                            data: [859, 754, 381, 350, 328, 214, 125],
+                            itemStyle: {
+                                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                    { offset: 0, color: '#667eea' },
+                                    { offset: 1, color: '#764ba2' }
+                                ])
+                            }
+                        }]
+                    }
+                }],
+                report: {
+                    format: 'markdown',
+                    content: `# 2024年各地区销售总额分析报告
+
+## 执行摘要
+本报告分析了2024年各地区的销售总额表现。
+
+## 数据概览
+- **总销售额**: 3,011万元
+- **覆盖地区**: 7个
+- **数据周期**: 2024年全年
+
+## 地区排名
+
+| 排名 | 地区 | 销售额 | 占比 |
+|------|------|--------|------|
+| 1 | 华东 | 859万 | 28.5% |
+| 2 | 华北 | 754万 | 25.0% |
+| 3 | 华南 | 381万 | 12.7% |
+
+## 关键洞察
+1. 华东地区表现最佳，占总销售额的28.5%
+2. 西北地区有较大增长潜力
+3. 前两名地区贡献了超过50%的销售额`
+                }
+            };
+
+            currentData = mockResult;
+            renderQueryResult(mockResult);
+            renderCharts(mockResult.charts);
+            renderReport(mockResult.report);
+        }
+
+        // 渲染查询结果
+        function renderQueryResult(result) {
+            const container = document.getElementById('queryResult');
+            
+            let sqlStatus = result.status || 'success';
+            let sqlText = result.sql || result.query_sql || 'SELECT * FROM table_name';
+
+            container.innerHTML = `
+                <div class="sql-result">
+                    <span class="sql-status ${sqlStatus}">${sqlStatus === 'success' ? '✅ 成功' : '❌ 失败'}</span>
+                    <pre>${sqlText}</pre>
+                </div>
+                ${result.explanation ? `<p style="margin-top: 15px; color: #6c757d;">${result.explanation}</p>` : ''}
+            `;
+        }
+
+        // 渲染图表
+        function renderCharts(charts) {
+            const container = document.getElementById('chartsContainer');
+            container.innerHTML = '';
+
+            charts.forEach((chart, index) => {
+                const chartId = `chart_${index}`;
+                currentCharts[chartId] = echarts.init(document.getElementById(chartId));
+
+                // 保存原始配置
+                if (index === 0) {
+                    currentEchartsOption = chart.echarts_option;
+                }
+
+                currentCharts[chartId].setOption(chart.echarts_option);
+
+                container.innerHTML += `
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <div class="chart-title">${chart.title || '图表 ' + (index + 1)}</div>
+                            <div class="chart-actions">
+                                <button class="chart-btn" onclick="exportChart('${chartId}')">📥 导出</button>
+                                <button class="chart-btn" onclick="fullscreenChart('${chartId}')">🔳 全屏</button>
+                            </div>
+                        </div>
+                        <div id="${chartId}" class="chart-container"></div>
+                    </div>
+                `;
+
+                // 重新初始化图表
+                setTimeout(() => {
+                    currentCharts[chartId] = echarts.init(document.getElementById(chartId));
+                    currentCharts[chartId].setOption(chart.echarts_option);
+                }, 100);
+            });
+        }
+
+        // 切换图表类型
+        function switchChartType(type) {
+            currentChartType = type;
+            
+            // 更新按钮状态
+            document.querySelectorAll('.chart-type-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.type === type);
+            });
+
+            // 更新主图表
+            if (currentEchartsOption && currentCharts['mainChart']) {
+                const newOption = JSON.parse(JSON.stringify(currentEchartsOption));
+                
+                if (newOption.series && newOption.series[0]) {
+                    newOption.series[0].type = type;
+                    
+                    // 饼图特殊处理
+                    if (type === 'pie') {
+                        const data = newOption.series[0].data;
+                        newOption.series[0] = {
+                            type: 'pie',
+                            radius: '55%',
+                            data: data.map((value, i) => ({
+                                value: value,
+                                name: newOption.xAxis?.data?.[i] || `项目${i + 1}`
+                            })),
+                            emphasis: {
+                                itemStyle: {
+                                    shadowBlur: 10,
+                                    shadowOffsetX: 0,
+                                    shadowColor: 'rgba(0, 0, 0, 0.5)'
+                                }
+                            }
+                        };
+                        delete newOption.xAxis;
+                        delete newOption.yAxis;
+                    }
+                    
+                    // 面积图特殊处理
+                    if (type === 'area') {
+                        newOption.series[0].areaStyle = {};
+                        newOption.series[0].smooth = true;
+                    }
+                }
+
+                currentCharts['mainChart'].setOption(newOption, true);
+            }
+        }
+
+        // 导出图表
+        function exportChart(chartId) {
+            const chart = currentCharts[chartId];
+            if (chart) {
+                const url = chart.getDataURL({
+                    type: 'png',
+                    pixelRatio: 2,
+                    backgroundColor: '#fff'
+                });
+                
+                const link = document.createElement('a');
+                link.download = 'chart.png';
+                link.href = url;
+                link.click();
+            }
+        }
+
+        // 全屏查看
+        function fullscreenChart(chartId) {
+            const modal = document.getElementById('fullscreenModal');
+            const fullscreenChart = echarts.init(document.getElementById('fullscreenChart'));
+            
+            const originalChart = currentCharts[chartId];
+            if (originalChart) {
+                fullscreenChart.setOption(originalChart.getOption());
+            }
+            
+            modal.classList.add('active');
+        }
+
+        // 关闭全屏
+        function closeFullscreen() {
+            document.getElementById('fullscreenModal').classList.remove('active');
+        }
+
+        // 渲染报表
+        function renderReport(report) {
+            const container = document.getElementById('reportContent');
+            
+            // 简单的Markdown渲染
+            let content = report.content || report;
+            content = content
+                .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+                .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+                .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.+?)\*/g, '<em>$1</em>')
+                .replace(/`(.+?)`/g, '<code>$1</code>')
+                .replace(/```(\w+)?\n([\s\S]+?)```/g, '<pre><code>$2</code></pre>')
+                .replace(/^\| (.+) \|$/gm, (match, row) => {
+                    const cells = row.split(' | ');
+                    const isHeader = cells.every(c => /^-+$/.test(c));
+                    if (isHeader) return '';
+                    const tag = 'td';
+                    return '<tr>' + cells.map(c => `<${tag}>${c.trim()}</${tag}>`).join('') + '</tr>';
+                })
+                .replace(/(<tr>.*<\/tr>)+/g, '<table>$&</table>')
+                .replace(/^- (.+)$/gm, '<li>$1</li>')
+                .replace(/(<li>.*<\/li>)+/g, '<ul>$&</ul>')
+                .replace(/\n\n/g, '</p><p>')
+                .replace(/^(.+)$/gm, (line) => {
+                    if (line.startsWith('<')) return line;
+                    return `<p>${line}</p>`;
+                });
+
+            container.innerHTML = `<div class="report-content">${content}</div>`;
+        }
+
+        // 文件上传
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            showLoading('documentResult');
+
+            // 模拟上传处理
+            setTimeout(() => {
+                document.getElementById('documentResult').innerHTML = `
+                    <div class="query-result" style="background: #f8f9fa; padding: 20px; border-radius: 12px;">
+                        <h4>📄 ${file.name}</h4>
+                        <p style="color: #6c757d; margin-top: 10px;">文件已上传，系统正在解析内容...</p>
+                        <div style="margin-top: 20px;">
+                            <p><strong>文档信息:</strong></p>
+                            <ul style="margin-left: 20px; line-height: 2;">
+                                <li>文件名: ${file.name}</li>
+                                <li>文件大小: ${(file.size / 1024).toFixed(2)} KB</li>
+                                <li>文件类型: ${file.type || '未知'}</li>
+                            </ul>
+                        </div>
+                        <div style="margin-top: 20px;">
+                            <input type="text" class="query-input" id="docQuery" 
+                                   placeholder="输入关于文档的问题，例如：文档的主要内容是什么？">
+                            <button class="btn btn-primary" style="margin-top: 10px;" 
+                                    onclick="queryDocument()">🔍 分析文档</button>
+                        </div>
+                    </div>
+                `;
+            }, 1000);
+        }
+
+        // 文档问答
+        async function queryDocument() {
+            const query = document.getElementById('docQuery').value.trim();
+            if (!query) {
+                alert('请输入问题');
+                return;
+            }
+
+            showLoading('documentResult');
+
+            // 模拟AI回答
+            setTimeout(() => {
+                document.getElementById('documentResult').innerHTML = `
+                    <div class="report-content">
+                        <h3>📖 文档分析结果</h3>
+                        <p><strong>您的问题:</strong> ${query}</p>
+                        <hr style="margin: 20px 0; border: none; border-top: 1px solid #e9ecef;">
+                        <h4>分析回答:</h4>
+                        <p>根据文档内容分析，该文档主要包含数据分析和报表相关的内容。文档涵盖了销售数据的各个方面，包括地区销售统计、产品类别分析以及客户购买行为研究。</p>
+                        <h4 style="margin-top: 20px;">关键信息提取:</h4>
+                        <ul style="margin-left: 20px; line-height: 2;">
+                            <li>数据覆盖时间范围: 2024年全年</li>
+                            <li>涉及地区: 华东、华北、华南、华中、东北、西南、西北</li>
+                            <li>主要分析维度: 地区、产品类别、客户群体</li>
+                            <li>关键指标: 销售额、销售量、同比增长率</li>
+                        </ul>
+                    </div>
+                `;
+            }, 1500);
+        }
+
+        // 拖拽上传
+        const uploadZone = document.getElementById('uploadZone');
+        
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        });
+
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('dragover');
+        });
+
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            
+            const file = e.dataTransfer.files[0];
+            if (file) {
+                document.getElementById('fileInput').files = e.dataTransfer.files;
+                handleFileUpload({ target: { files: [file] } });
+            }
+        });
+
+        // 显示加载状态
+        function showLoading(containerId) {
+            document.getElementById(containerId).innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                </div>
+            `;
+        }
+
+        // 窗口大小变化时重绘图表
+        window.addEventListener('resize', () => {
+            Object.values(currentCharts).forEach(chart => {
+                if (chart && chart.resize) {
+                    chart.resize();
+                }
+            });
+        });
+
+        // 初始化 - 加载示例图表
+        document.addEventListener('DOMContentLoaded', () => {
+            // 初始化主图表
+            const mainChart = echarts.init(document.getElementById('mainChart'));
+            currentCharts['mainChart'] = mainChart;
+
+            const option = {
+                title: {
+                    text: '2024年各地区销售总额对比',
+                    left: 'center',
+                    textStyle: { fontSize: 18, fontWeight: 'bold' }
+                },
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: { type: 'shadow' },
+                    formatter: '{b}<br/>销售额: ¥{c}万元'
+                },
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    bottom: '10%',
+                    top: '15%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'category',
+                    data: ['华东', '华北', '华南', '华中', '东北', '西南', '西北'],
+                    axisLabel: { fontSize: 12 },
+                    axisLine: { lineStyle: { color: '#999' } }
+                },
+                yAxis: {
+                    type: 'value',
+                    name: '销售额(万元)',
+                    axisLabel: { fontSize: 12 }
+                },
+                series: [{
+                    name: '销售额',
+                    type: 'bar',
+                    data: [859, 754, 381, 350, 328, 214, 125],
+                    itemStyle: {
+                        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                            { offset: 0, color: '#667eea' },
+                            { offset: 1, color: '#764ba2' }
+                        ]),
+                        borderRadius: [4, 4, 0, 0]
+                    },
+                    label: {
+                        show: true,
+                        position: 'top',
+                        formatter: '{c}'
+                    }
+                }]
+            };
+
+            mainChart.setOption(option);
+            currentEchartsOption = option;
+        });
+
+        // 点击模态框外部关闭
+        document.getElementById('fullscreenModal').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) {
+                closeFullscreen();
+            }
+        });
+    </script>
+</body>
+</html>
